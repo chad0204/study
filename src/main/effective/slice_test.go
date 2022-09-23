@@ -97,23 +97,27 @@ func TestLenAndCap(t *testing.T) {
 
 	fmt.Printf("slice len = %d, cap = %d, %v \n", len(slice), cap(slice), slice)
 
-	//这里[s:e], e不能超过8. TODO 为什么cap不能增长 ,append(s1, 1)
+	//这里[s:e], e不能超过8. TODO 为什么cap不能增长. 不能自动扩容, 需要通过append(s1, 1)来扩容
 	slice = slice[0:7]
 
 	fmt.Printf("slice len = %d, cap = %d, %v \n", len(slice), cap(slice), slice)
 
 	s := []byte{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k'}
 
-	//	修改s1/2/3, 会作用到s
+	//	修改s1/2/3/4, 会作用到s TODO  append之后, 还是这样指向同一个数组嘛？
 	s1 := s[1:4]
 	s2 := s[2:]
 	s3 := s[0:2]
+	s4 := s[0:5] //end不能超过cap
 
-	// s = arr[start:end] cap = len(arr) - start len = end - start
-	fmt.Printf("s len = %d, cap = %d, %c \n", len(s), cap(s), s)
-	fmt.Printf("s1 len = %d, cap = %d, %c \n", len(s1), cap(s1), s1)
-	fmt.Printf("s2 len = %d, cap = %d, %c \n", len(s2), cap(s2), s2)
-	fmt.Printf("s3 len = %d, cap = %d, %c \n", len(s3), cap(s3), s3)
+	s4[0] = '$'
+
+	// s = arr[start:end] cap = len(arr) - start, len = end - start
+	fmt.Printf("s len = %d, cap = %d, address = %p, %c \n", len(s), cap(s), &s, s)
+	fmt.Printf("s1 len = %d, cap = %d, address = %p, %c \n", len(s1), cap(s1), &s1, s1)
+	fmt.Printf("s2 len = %d, cap = %d, address = %p, %c \n", len(s2), cap(s2), &s2, s2)
+	fmt.Printf("s3 len = %d, cap = %d, address = %p, %c \n", len(s3), cap(s3), &s3, s3)
+	fmt.Printf("s4 len = %d, cap = %d, address = %p, %c \n", len(s4), cap(s4), &s4, s4)
 
 }
 
@@ -156,16 +160,80 @@ func TestForRange(t *testing.T) {
 }
 
 func TestReSlice(t *testing.T) {
-
 	s := make([]int, 0, 10)
 
 	// len不能超过cap
+	// s[start:end],
 	for i := 0; i < cap(s); i++ {
 		s = s[0 : i+1]
 		s[i] = i
 		fmt.Printf("s len = %d, cap = %d, %v \n", len(s), cap(s), s)
 	}
+}
 
-	s = s[len(s):len(s)]
+func TestCopy(t *testing.T) {
 
+	src := []int{1, 2, 3}
+	dst := make([]int, 10)
+	res := copy(dst, src)
+
+	fmt.Printf("src len = %d, cap = %d, %v \n", len(src), cap(src), src)
+	fmt.Printf("dst len = %d, cap = %d, %v \n", len(dst), cap(dst), dst)
+	fmt.Printf("copy res = %d \n", res)
+
+	//修改目标, 不会改变源数组
+	dst[1] = 9999
+
+	fmt.Printf("src len = %d, cap = %d, %v \n", len(src), cap(src), src)
+	fmt.Printf("dst len = %d, cap = %d, %v \n", len(dst), cap(dst), dst)
+
+}
+
+func TestAppend(t *testing.T) {
+
+	s := []int{1, 2, 3, 4, 5}
+	fmt.Printf("s len = %d, cap = %d, address = %p, %v \n", len(s), cap(s), &s, s)
+
+	//超过cap, 扩容一倍
+	s1 := append(s, 6)
+	s2 := append(s1, 7)
+	//超过s2的cap, 扩容一倍
+	s3 := append(s2, 8, 9, 10, 11)
+	fmt.Printf("s1 len = %d, cap = %d, address = %p, %v \n", len(s1), cap(s1), &s1, s1)
+	fmt.Printf("s2 len = %d, cap = %d, address = %p, %v \n", len(s2), cap(s2), &s2, s2)
+	fmt.Printf("s3 len = %d, cap = %d, address = %p, %v \n", len(s3), cap(s3), &s3, s3)
+
+}
+
+func TestAppendChar(t *testing.T) {
+
+	s := "string"
+	beforeChars := []byte(s) // 也可以用copy转数组
+
+	fmt.Printf("before len = %d, cap = %d, address = %p, %v \n", len(beforeChars), cap(beforeChars), &beforeChars, beforeChars)
+	afterChars := AppendChar(beforeChars, 'a', 'b', 'c')
+
+	fmt.Printf("after len = %d, cap = %d, address = %p, %v \n", len(afterChars), cap(afterChars), &afterChars, afterChars)
+
+	fmt.Println(string(afterChars))
+
+}
+
+//用copy实现append
+func AppendChar(slice []byte, ele ...byte) []byte {
+	oldLen := len(slice)
+	newLen := oldLen + len(ele)
+
+	newCap := cap(slice)
+
+	if newLen > newCap {
+		newCap = newLen * 2
+		newSlice := make([]byte, newCap)
+		copy(newSlice, slice)
+		slice = newSlice
+	}
+
+	slice = slice[0:newLen]
+	copy(slice[oldLen:newLen], ele)
+	return slice
 }
