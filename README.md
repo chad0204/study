@@ -8,3 +8,7 @@ http://books.studygolang.com/the-way-to-go_ZH_CN/
 https://books.studygolang.com/gopl-zh/
 
 http://books.studygolang.com/advanced-go-programming-book/
+
+https://geekr.dev/posts/go-sorting-algorithm-merge
+
+http://books.studygolang.com/
