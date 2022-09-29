@@ -14,7 +14,8 @@ func TestChannel(t *testing.T) {
 	c1 = make(chan string)
 	//c2 := make(chan int) //声明并初始化内存
 
-	//默认是无缓存通道。发送一个,没有接收则下次发送阻塞。接收完成, 没有发送则下次接收阻塞
+	//默认是无缓存通道。发送完成,没有被接收之前当前协程阻塞。 接收协程也是阻塞,直到有其他协程发送
+	//接收和发送都会阻塞协程。
 	go sendData(c1)
 	go receiveData(c1)
 
@@ -43,11 +44,14 @@ func TestDeadLock(t *testing.T) {
 
 	//go func() {
 	//	c <- "data"
+	//	//block until receive...
 	//}()
 	//go func() {
 	//	fmt.Println(<- c)
+	//  //block until send...
 	//}()
 
+	//一个协程是做不了同时发送和接收的
 	c <- "data"      // block当前协程
 	fmt.Println(<-c) //永远无法执行。除非上面一行在另一个协程中执行, 或者c是个有缓冲通道
 
@@ -71,7 +75,7 @@ func TestBufferChannel(t *testing.T) {
 
 }
 
-//想让主协程在子协程完成后退出
+// 想让主协程在子协程完成后退出
 func TestBlock(t *testing.T) {
 
 	ch := make(chan int)
@@ -87,44 +91,43 @@ func TestBlock(t *testing.T) {
 
 // 主协程阻塞到多个协程执行完成 （no buffer）
 func TestSemaphore(t *testing.T) {
-	ch := make(chan int)
+	chSemaphore := make(chan int)
 	arr := make([]int, 100)
 	pivot := 5
 
 	go func(nums []int) {
 		time.Sleep(2e9)
-		ch <- 0
+		chSemaphore <- 0
 		fmt.Println("sort1 done...")
 	}(arr[:pivot])
 
 	go func(nums []int) {
 		time.Sleep(5e9)
-		ch <- 0
+		chSemaphore <- 0
 		fmt.Println("sort2 done...")
 	}(arr[pivot:])
 
 	//阻塞到两个协程结束
-	<-ch
-	<-ch
+	<-chSemaphore
+	<-chSemaphore
 }
 
 // 信号量
 func TestSemaphoreV2(t *testing.T) {
 
 	N := 10
-
-	ch := make(chan int, N) //10个
+	chSemaphore := make(chan int, N) //10个
 
 	for i := 0; i < N; i++ {
 		go func() {
 			time.Sleep(2e9)
-			ch <- 0
+			chSemaphore <- 0
 			fmt.Println("process done...")
 		}()
 	}
 
 	//阻塞到所有协程结束
 	for i := 0; i < N; i++ {
-		<-ch
+		<-chSemaphore
 	}
 }
