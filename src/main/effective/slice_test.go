@@ -21,12 +21,11 @@ func TestArray(t *testing.T) {
 	//var arr3 = [5]int{5, 6, 7, 8, 22}
 	//var arr4 = [5]string{0: "赋值索引0的字符串", 4: "赋值索引4的字符串"}
 
-	//是值对象
+	//是值类型
 	fmt.Printf("arr address:%p \n", &arr1)
 	exchange(arr1)
 	//exchangeRef(&arr1)
 
-	fmt.Printf("result: %v \n", arr)
 	fmt.Printf("result: %v \n", arr1)
 
 }
@@ -97,7 +96,7 @@ func TestLenAndCap(t *testing.T) {
 
 	fmt.Printf("slice len = %d, cap = %d, %v \n", len(slice), cap(slice), slice)
 
-	//这里[s:e], e不能超过8. TODO 为什么cap不能增长. 不能自动扩容, 需要通过append(s1, 1)来扩容
+	//这里[s:e], e不能超过8. TODO 为什么设置索引cap不能自动扩容？ 需要通过append(s1, 1)来扩容
 	slice = slice[0:7]
 
 	fmt.Printf("slice len = %d, cap = %d, %v \n", len(slice), cap(slice), slice)
