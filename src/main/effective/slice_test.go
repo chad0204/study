@@ -5,10 +5,10 @@ import (
 	"testing"
 )
 
-// 1. 数组是值传递、切片是引用传递。 数组床底需要拷贝值, 切片只需要传递引用, 效率更高。
+// 1. 数组是值传递、切片是引用传递。 数组传递需要拷贝值, 切片只需要传递引用, 效率更高。
 // 2. 数组需要定义长度、切片长度可以动态变化。
 // 3. 多个slice表示同一数组, 这些slice可以共享存储。数组是切片的构建块。当你有个数组arr需要函数传递，最好创建一个切片arr[:],传递这个切片。
-
+// go/src/runtime/slice.go
 func TestArray(t *testing.T) {
 
 	//声明, 需要定义长度, 有初始化默认值
@@ -32,7 +32,7 @@ func TestArray(t *testing.T) {
 }
 
 func exchange(arr [5]int) {
-	//这样不行 TODO
+	//为什么这样不行？ 这样v也是copy了值, 修改不会影响原数组
 	//for _,v := range arr {
 	//	v = v + 1
 	//}
