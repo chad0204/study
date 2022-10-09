@@ -48,4 +48,15 @@ func changeDemoV2(demo *Demo) {
 
 func TestInit(t *testing.T) {
 
+	demo := Demo{"f1", "f2", "f3"}
+	fmt.Println(demo)
+
+	//常规 &Type== new(Type)
+	demo1 := &Demo{filed1: "f1", filed2: "f2", filed3: "f3"} //不必顺序
+	demo2 := &Demo{"f1", "f2", "f3"}                         //按顺序
+	demo3 := &Demo{filed3: "f3"}                             //部分字段
+	fmt.Println(demo1)
+	fmt.Println(demo2)
+	fmt.Println(demo3)
+
 }
