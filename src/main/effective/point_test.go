@@ -22,6 +22,8 @@ import (
 不用指针：不用走gc。需要copy整个对象的内存。如果对象比较小, 不用指针可以减少gc, 如果用了指针, gc需要扫描的路径会变长。
 
 
+new和make用于分配内存, new用于值类型和用户自定义类型, 如自定义结构体, make用于内置的引用类型, 如slice、map、chan
+
 */
 func TestPoint(t *testing.T) {
 	//基本类型都是值类型, java也是
@@ -83,6 +85,12 @@ func TestMapChange(t *testing.T) {
 	fmt.Printf("map before info. pointAddress: %p, pointValue: %p \n", &m, m)
 	changeMapValue(m)
 	fmt.Printf("map info: %v \n", m)
+
+	//如果map的value是值类型, 修改map的value的属性, 需要用指针
+	//personMap := map[string]Person{}//无法修改
+	personMap := map[string]*Person{} //可以修改
+	fmt.Println(personMap)
+
 }
 
 func changeMapValue(m map[string]int) {
