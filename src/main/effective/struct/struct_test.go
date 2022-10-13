@@ -8,7 +8,7 @@ import (
 	"unsafe"
 )
 
-//数组也可以看成一种结构体, 下标相当于字段, 都是值类型
+// 数组也可以看成一种结构体, 下标相当于字段, 都是值类型
 type Demo struct {
 	filed1 string
 	filed2 string
@@ -54,7 +54,7 @@ node
 
 */
 
-//递归结构体
+// 递归结构体
 type Node struct {
 	id    int
 	value Value
@@ -205,7 +205,7 @@ type Son struct {
 	f      Father
 }
 
-//匿名字段, 内嵌匿名结构体
+// 匿名字段, 内嵌匿名结构体
 func TestAnonymous(t *testing.T) {
 	s := new(Son)
 	s.id = 10
@@ -238,19 +238,19 @@ type B struct {
 	a, b string
 }
 
-//同级别命名冲突
+// 同级别命名冲突
 type C struct {
 	A
 	B
 }
 
-//内外层命名冲突
+// 内外层命名冲突
 type D struct {
 	B
 	b string
 }
 
-//内嵌结构体, 命名冲突
+// 内嵌结构体, 命名冲突
 func TestDuplicateName(t *testing.T) {
 	//同级别命名冲突
 	c := &C{
