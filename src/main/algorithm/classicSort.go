@@ -1,6 +1,6 @@
 package algorithm
 
-func bubbleSort(nums []int) {
+func BubbleSort(nums []int) {
 	var complete bool
 	for i := 0; i < len(nums)-1; i++ { //次数
 		complete = true

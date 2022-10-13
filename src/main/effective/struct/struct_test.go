@@ -2,6 +2,8 @@ package _struct
 
 import (
 	"fmt"
+	"reflect"
+	"study/src/main/effective/struct/inner"
 	"testing"
 	"unsafe"
 )
@@ -141,30 +143,130 @@ func TestInit(t *testing.T) {
 
 }
 
-type Instance struct {
-	id   int
-	name string
-}
-
 func TestFactory(t *testing.T) {
-	//结构体没有构造器, 可以通过工厂方法来创建
-	instance := NewInstance(233, "pc")
-
-	//禁止使用new
-
+	//结构体没有构造器, 可以通过工厂方法来创建, 通过小写不能包外导出, 禁止new(Type)
+	instance := inner.NewInstance(233, "pc")
 	fmt.Println(instance)
+	fmt.Println(instance.GetId())
 }
 
-func NewInstance(id int, name string) *Instance {
-	return &Instance{
-		id,
-		name,
-	}
+type Foo map[string]int
+
+type Bar struct {
+	key   string
+	value int
 }
 
-func newInstance(id int, name string) *Instance {
-	return &Instance{
-		id,
-		name,
+func TestNewAndMake(t *testing.T) {
+	// make用于引用类型, new用于值类型
+	//b := make(Bar)//make用于值类型编译报错
+	f := make(Foo)
+	f["key"] = 10
+	fmt.Println(f)
+
+	bar := new(Bar)
+	bar.key = "key"
+	bar.value = 10
+	fmt.Println(bar)
+
+	foo := new(Foo) //foo是一个指向nil的指针, 仍然需要*foo = map[string]int{}来分配内存
+	fmt.Printf("%v, %p \n", foo, foo)
+	//(*foo)["key"] = 10// new用于引用类型，运行时报错assignment to entry in nil map
+}
+
+type TagFoo struct {
+	field1 string "tag1"
+	field2 int    "tag2"
+}
+
+func TestTag(t *testing.T) {
+
+	tf := new(TagFoo)
+	tf.field1 = "tag1"
+	tf.field2 = 233
+	fmt.Printf("tf = %v,%p, *tf = %v,%p \n", tf, tf, *tf, &*tf)
+
+	//TypeOf的入参是值。 反射获取tag
+	field1 := reflect.TypeOf(*tf).Field(0)
+	field2 := reflect.TypeOf(*tf).Field(1)
+
+	fmt.Printf("%v, %v", field1.Tag, field2.Tag)
+}
+
+type Father struct {
+	firstName string
+	address   string
+}
+
+type Son struct {
+	id     int
+	string `json:"匿名字段"`
+	Father `json:"内嵌结构体"`
+	f      Father
+}
+
+//匿名字段, 内嵌匿名结构体
+func TestAnonymous(t *testing.T) {
+	s := new(Son)
+	s.id = 10
+	s.string = "匿名字段"
+	s.firstName = "abc" //直接访问内嵌结构体的字段
+	s.address = "LA"
+	s.f.firstName = "not anonymous" // 非匿名就不是内嵌结构体
+	fmt.Println(s)
+
+	son := &Son{
+		id:     1,
+		string: "anonymousStr",
+		Father: Father{
+			firstName: "abc",
+			address:   "LA",
+		},
+		f: Father{
+			firstName: "abc",
+			address:   "LA",
+		},
 	}
+	fmt.Println(son)
+}
+
+type A struct {
+	a string
+}
+
+type B struct {
+	a, b string
+}
+
+//同级别命名冲突
+type C struct {
+	A
+	B
+}
+
+//内外层命名冲突
+type D struct {
+	B
+	b string
+}
+
+//内嵌结构体, 命名冲突
+func TestDuplicateName(t *testing.T) {
+	//同级别命名冲突
+	c := &C{
+		A{"a"},
+		B{"a", "b"},
+	}
+	fmt.Println(c.A.a)
+	//fmt.Println(c.a)//compiler error
+
+	d := &D{
+		B{
+			"a", "out b",
+		},
+		"in b",
+	}
+	fmt.Println(d.b)   // 内层会覆盖外层
+	fmt.Println(d.B.b) //可以这样
+
 }

@@ -7,8 +7,8 @@ import (
 
 func TestBubbleSort(t *testing.T) {
 
-	arr := []int{1, 5, 3, 4, 2, 99, 88, 77}
-	bubbleSort(arr) // 值传递不行的
+	arr := []int{1, 5, 3, 4, 2, 99, 88, 77} //没有定义长度，是slice, 引用类型
+	BubbleSort(arr)                         // 数组值传递不行的，这里入参数组没带长度，是slice
 	for _, v := range arr {
 		fmt.Println(v)
 	}

@@ -17,7 +17,7 @@ func TestMap(t *testing.T) {
 	fmt.Println(m2 == nil)
 	//不要使用 new，永远用 make 来构造 map
 	newMap := new(map[string]float32)
-	//newMap["key"] = 4.5//error null point
+	//(*newMap)["key"] = 4.5//error null point
 	fmt.Println(newMap)
 
 	m = map[string]int{"a": 1, "b": 2, "c": 3}
