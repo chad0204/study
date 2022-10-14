@@ -14,6 +14,21 @@ type instance struct {
 	name string
 }
 
+//Person 导出类型 不导出字段
+type Person struct {
+	name string
+}
+
+// Name getter
+func (p *Person) Name() string {
+	return p.name
+}
+
+// SetName setter
+func (p *Person) SetName(name string) {
+	p.name = name
+}
+
 //NewInstance factory
 func NewInstance(id int, name string) *instance {
 	return &instance{

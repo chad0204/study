@@ -205,6 +205,8 @@ type Son struct {
 	f      Father
 }
 
+//内嵌结构体, 可以实现继承！！！
+
 // 匿名字段, 内嵌匿名结构体
 func TestAnonymous(t *testing.T) {
 	s := new(Son)

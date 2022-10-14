@@ -142,3 +142,23 @@ func changeNameRefV2(p *Person) {
 type Person struct {
 	name string
 }
+
+type A struct {
+}
+
+//测试 * 和 &
+func TestSymbol(t *testing.T) {
+
+	//一个值
+	a := A{}
+
+	fmt.Printf("&a: %v, *&a: %v  \n", &a, *&a)
+
+	//一个指针
+	b := &A{}
+	fmt.Printf("&b: %v, *&b: %v  \n", &b, *&b)
+
+	//&  (&value)是指针 (&指针)是地址
+	//*  (*指针)是值  (*value)编译报错; *也不能用在map、slice、chan这些引用类型上
+
+}
