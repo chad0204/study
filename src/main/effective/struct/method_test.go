@@ -53,7 +53,7 @@ func TestMethod(t *testing.T) {
 
 }
 
-//非结构体接收者, slice的别名类型
+// 非结构体接收者, slice的别名类型
 type Slice []int
 
 func (s Slice) Sum() int {
@@ -75,19 +75,19 @@ func (m Map) appendKey() string {
 	return keys
 }
 
-//不能直接给string加方法, 但是可以给别名类型加方法
+// 不能直接给string加方法, 但是可以给别名类型加方法
 type MyString struct {
 	string
 }
 
-//此方法只针对别名MyString有效
+// 此方法只针对别名MyString有效
 func (s MyString) getLength() int {
 	return len(s.string)
 }
 
-//类型和作用在它上面定义的方法必须在同一个包里定义!!!
-//比如给int,string定义方法 编译报cannot define new methods on non-local type int/string
-//可以定义别名类型来解决
+// 类型和作用在它上面定义的方法必须在同一个包里定义!!!
+// 比如给int,string定义方法 编译报cannot define new methods on non-local type int/string
+// 可以定义别名类型来解决
 func TestAliasTypeMethod(t *testing.T) {
 
 	//Slice是slice的别名类型引用类型, 不能new
@@ -124,13 +124,13 @@ func (s Service) valueM() string {
 	return "value"
 }
 
-//指针接收者和值接收者
+// 指针接收者和值接收者
 func TestValueAndPoint(t *testing.T) {
 
 	//如果指针和值都可以, 用指针性能更好, 拷贝一个值代价大概率比拷贝一个指针大
 	//如果方法内部要改变接收者的数据, 必须用指针
 
-	// 指针方法和值方法都可以在指针或非指针上被调用
+	// 指针方法和值方法都可以在指针或非指针上被调用, 变量调用方法是不区分变量是值还是指针的, 只要可以寻址就行。（接口不是）
 
 	//指针可以调用值方法和指针方法
 	ps := &Service{}
@@ -148,7 +148,7 @@ func TestValueAndPoint(t *testing.T) {
 
 }
 
-//通过内嵌结构体 模拟继承与多态
+// 通过内嵌结构体 模拟继承与多态
 type Engine struct {
 }
 
@@ -170,10 +170,10 @@ func (c *Car) numberOfWheel() int {
 }
 
 type Mercedes struct {
-	Car
+	Car //内嵌结构体不需要用指针
 }
 
-//重写
+// 重写
 func (m *Mercedes) start() {
 	fmt.Println("Mercedes car start")
 }
@@ -186,3 +186,30 @@ func TestInherit(t *testing.T) {
 	fmt.Printf(strconv.Itoa(m.numberOfWheel()))
 
 }
+
+type Fly struct {
+}
+
+type Swim struct {
+}
+
+type Duck struct {
+	Fly
+	Swim
+}
+
+func (f *Fly) fly() {
+	fmt.Println("I can fly!")
+}
+func (s *Swim) swim() {
+	fmt.Println("I can swim!")
+}
+
+// 多重继承
+func TestMoreInherit(t *testing.T) {
+	duck := Duck{}
+	duck.fly()
+	duck.swim()
+}
+
+// 和java相比, go的多态是通过组合实现的, 而不是继承, 更加灵活

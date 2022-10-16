@@ -3,6 +3,7 @@ package _struct
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"study/src/main/effective/struct/inner"
 	"testing"
 	"unsafe"
@@ -232,6 +233,41 @@ func TestAnonymous(t *testing.T) {
 	fmt.Println(son)
 }
 
+type V struct {
+	name string
+}
+
+type K struct {
+	V     // 内嵌类型不需要指针
+	vp *V //指针类型的域
+	v  V  // 结构体内存是连续的, 通过k指针修改v的内容, 是有效的
+}
+
+// 指针结构体字段、值结构体字段、和内嵌结构体字段
+func TestStructField(t *testing.T) {
+	k := &K{V{"anonymous field"}, &V{"point field"}, V{"value field"}}
+	fmt.Printf("before: %v \n", k)
+	//changeK(k)// 都生效
+	changeV(k.V)   // 无效
+	changeV(k.v)   // 无效
+	changeV(*k.vp) // 无效
+
+	fmt.Printf("after : %v \n", k)
+
+}
+
+func changeV(v V) {
+	v.name = v.name + "change"
+}
+
+func changeK(k *K) {
+	// 通过外结构体的指针, 可以修改内部值、指针、匿名的结构体体域
+	k.name = "anonymous field change" //ok
+	k.vp.name = "point field change"  //ok
+	//k.v.name = "value field change"   //ok
+	(&(k.v)).name = "value field change"
+}
+
 type A struct {
 	a string
 }
@@ -270,5 +306,92 @@ func TestDuplicateName(t *testing.T) {
 	}
 	fmt.Println(d.b)   // 内层会覆盖外层
 	fmt.Println(d.B.b) //可以这样
+
+}
+
+type Local struct {
+	x int
+	y int
+}
+
+func (l *Local) String() string {
+	return "{x = " + strconv.Itoa(l.x) + ", y = " + strconv.Itoa(l.y) + "}"
+}
+
+// toString ,fmt.Printf()的%v和fmt.Printf()都会调用类型的String()方法
+func TestString(t *testing.T) {
+
+	l := new(Local)
+	l.x = 10
+	l.y = 15
+	fmt.Println(l)
+	fmt.Printf("%v \n", l)
+	fmt.Printf("%T \n", l)
+	fmt.Printf("%#v \n", l) // 生成的结构可以作为go代码生成
+
+}
+
+type StackNode struct {
+	prev *StackNode
+	next *StackNode
+	data int
+}
+
+type Stack struct {
+	size int
+	head *StackNode
+	tail *StackNode
+}
+
+// push 到尾巴
+func (s *Stack) push(data int) int {
+	//init
+	if s.head == nil || s.tail == nil {
+		s.head = &StackNode{}
+		s.tail = &StackNode{}
+		s.head.next = s.tail
+		s.tail.prev = s.head
+	}
+	//append
+	node := &StackNode{
+		prev: s.tail.prev,
+		next: s.tail,
+		data: data,
+	}
+	s.tail.prev.next = node
+	s.tail.prev = node
+	s.size++
+	return s.size
+}
+
+// 从尾巴取
+func (s *Stack) pop() int {
+	if s.tail.prev == s.head {
+		return 0
+	}
+
+	data := s.tail.prev.data
+
+	prev := s.tail.prev
+	s.tail.prev = prev.prev
+	prev.prev.next = s.tail
+	prev.prev = nil
+	prev.next = nil
+	s.size--
+
+	return data
+}
+
+func TestStack(t *testing.T) {
+	stack := new(Stack)
+	stack.push(1)
+	stack.push(2)
+	stack.push(3)
+	fmt.Println(stack.size)
+
+	fmt.Println(stack.pop())
+	fmt.Println(stack.pop())
+	fmt.Println(stack.pop())
+	fmt.Println(stack.size)
 
 }

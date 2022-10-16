@@ -5,25 +5,29 @@ import (
 	"testing"
 )
 
-//指针的值是地址, 指向对象。引用也有自己的地址。
-//对象的值是对象属性。对象的地址是指针。
+//指针是个变量, 值也是个变量
+//指针变量存的是地址, 指向值对象。
+//值变量存的是对象的内存。
 
-/**
+/*
+*
 
 类型: 引用类型和值类型（基本类型）
 传递: 针对函数调用,
+
 	值传递, 实参通过拷贝将自身内容传递给形参, 形参实际是实参的一个副本, 对这个副本的修改不影响原先的实参内容;
 	引用传递, 实参在函数调用时只将自己的地址传递给形参, 通过形参的内容（即实参的地址）,可以操作实参的内容。
-
 
 引用类型或者传递指针，函数调用时开销比较小，因为copy一份指针副本，比copy整个对象的开销小。而且传递对象，无法改变原来的对象内容。
 
 指针：引用传递, 需要函数传递后,重新赋值对象的属性。会走gc（gc只关心指针，扫码对象是否包含指针）, 且可以修改指针指向的对象的属性, 带来复杂性（需要明确是否可以被修改）。
 不用指针：不用走gc。需要copy整个对象的内存。如果对象比较小, 不用指针可以减少gc, 如果用了指针, gc需要扫描的路径会变长。
 
-
 new和make用于分配内存, new用于值类型和用户自定义类型, 如自定义结构体, make用于内置的引用类型, 如slice、map、chan
 
+ref:
+https://github.com/golang/go/wiki/CodeReviewComments#receiver-type
+https://studygolang.com/articles/32103
 */
 func TestPoint(t *testing.T) {
 	//基本类型都是值类型, java也是
@@ -115,7 +119,7 @@ func changeName(p Person) {
 	p.name = "changed"
 }
 
-//演示直接赋值而不是修改属性
+// 演示直接赋值而不是修改属性
 func changeNameV2(p Person) {
 	//这里copy出一份对象副本, 形参和实参的地址不一样, 修改当前副本不会改变外面的实参对象
 	person := Person{
@@ -130,7 +134,7 @@ func changeNameRef(point *Person) {
 	point.name = "changed"
 }
 
-//演示直接赋值而不是修改属性
+// 演示直接赋值而不是修改属性
 func changeNameRefV2(p *Person) {
 	//这里会copy一份指针的副本, 由于是两个不同的指针, 形参指向新的地址, 不会改变原来的实参指向的地址
 	p = &Person{
@@ -146,7 +150,7 @@ type Person struct {
 type A struct {
 }
 
-//测试 * 和 &
+// 测试 *(取值) 和 &(取址)
 func TestSymbol(t *testing.T) {
 
 	//一个值
