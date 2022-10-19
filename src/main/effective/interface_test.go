@@ -232,6 +232,7 @@ type day struct {
 	longName  string
 }
 
+// v1
 type daySlice struct {
 	data []*day
 }
@@ -239,6 +240,13 @@ type daySlice struct {
 func (x *daySlice) Len() int           { return len(x.data) }
 func (x *daySlice) Less(i, j int) bool { return x.data[i].num < x.data[j].num }
 func (x *daySlice) Swap(i, j int)      { x.data[i], x.data[j] = x.data[j], x.data[i] }
+
+// v2
+type daySliceV2 []day //可以用指针 也可以用值
+
+func (x daySliceV2) Len() int           { return len(x) }
+func (x daySliceV2) Less(i, j int) bool { return x[i].num < x[j].num }
+func (x daySliceV2) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
 
 // 自定义weekday排序
 func TestSored(t *testing.T) {
@@ -251,8 +259,8 @@ func TestSored(t *testing.T) {
 	Friday := day{5, "FRI", "Friday"}
 	Saturday := day{6, "SAT", "Saturday"}
 
+	// v1
 	data := []*day{&Tuesday, &Thursday, &Wednesday, &Sunday, &Monday, &Friday, &Saturday}
-
 	a := new(daySlice)
 	a.data = data
 
@@ -260,9 +268,33 @@ func TestSored(t *testing.T) {
 	if !sort.IsSorted(a) {
 		panic("fail")
 	}
+	fmt.Printf("v1 sorted: ")
 	for _, d := range data {
 		fmt.Printf("%s ", d.longName)
 	}
 	fmt.Printf("\n")
 
+	// v2
+	dataV2 := []day{Tuesday, Thursday, Wednesday, Sunday, Monday, Friday, Saturday}
+	v2 := daySliceV2(dataV2) // 语法糖
+	sort.Sort(daySliceV2(dataV2))
+	if !sort.IsSorted(v2) {
+		panic("fail")
+	}
+	fmt.Printf("v2 sorted: ")
+	for _, d := range v2 {
+		fmt.Printf("%s ", d.longName)
+	}
+	fmt.Printf("\n")
+
+	//引用传递, 如果用指针 应该是防止copy
+	changeSlice(v2)
+	for _, d := range v2 {
+		fmt.Printf("%s ", d.longName)
+	}
+	fmt.Printf("\n")
+}
+
+func changeSlice(days daySliceV2) {
+	days[0] = day{7, "unKnow", "unKnow"}
 }
