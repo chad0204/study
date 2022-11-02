@@ -298,3 +298,72 @@ func TestSored(t *testing.T) {
 func changeSlice(days daySliceV2) {
 	days[0] = day{7, "unKnow", "unKnow"}
 }
+
+// interface {} 变量在内存中占据两个字长：一个用来存储它包含的类型，另一个用来存储它包含的数据或者指向数据的指针
+type Any interface{}
+
+// 自定义类型
+type SpecialString string
+
+// 空接口
+func TestEmptyInterface(t *testing.T) {
+	var val Any
+	val = 1
+	fmt.Printf("any is %v \n", val)
+	val = "ss"
+	fmt.Printf("any is %v \n", val)
+	val = Square{1}
+	fmt.Printf("any is %v \n", val)
+
+	switch t := val.(type) {
+	case int:
+		fmt.Printf("any is %v, type is %T \n", t, t)
+	case Square:
+		fmt.Printf("any is %v, type is %T \n", t, t)
+	case string:
+		fmt.Printf("any is %v, type is %T \n", t, t)
+	}
+
+	testFunc := func(any Any) {
+		switch any.(type) {
+		case int:
+			fmt.Printf("any %v is a int type \n", any)
+		case string:
+			fmt.Printf("any %v is a string type \n", any)
+		case SpecialString:
+			fmt.Printf("any %v is a SpecialString type \n", any)
+		}
+	}
+	var str SpecialString = "hello"
+	testFunc(str)
+	var stri string = "world"
+	testFunc(stri)
+
+}
+
+type Element interface{}
+
+type Vector struct {
+	element []Element
+}
+
+func (v *Vector) At(i int) Element {
+	return v.element[i]
+}
+
+func (v *Vector) set(i int, element Element) {
+	v.element[i] = element
+}
+
+// 实现通用排序
+func TestElement(t *testing.T) {
+
+	var list Vector
+	ele := make([]Element, 100)
+	list.element = ele
+	list.set(1, 10)
+	fmt.Println(list.At(1))
+
+	//sort.Sort(list)
+
+}
