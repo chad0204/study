@@ -3,6 +3,7 @@ package effective
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"sort"
 	"testing"
 )
@@ -266,7 +267,7 @@ func TestSored(t *testing.T) {
 
 	sort.Sort(a)
 	if !sort.IsSorted(a) {
-		panic("fail")
+		fmt.Errorf("fail %v", a)
 	}
 	fmt.Printf("v1 sorted: ")
 	for _, d := range data {
@@ -279,7 +280,7 @@ func TestSored(t *testing.T) {
 	v2 := daySliceV2(dataV2) // 语法糖
 	sort.Sort(daySliceV2(dataV2))
 	if !sort.IsSorted(v2) {
-		panic("fail")
+		fmt.Errorf("fail %v", v2)
 	}
 	fmt.Printf("v2 sorted: ")
 	for _, d := range v2 {
@@ -355,15 +356,41 @@ func (v *Vector) set(i int, element Element) {
 	v.element[i] = element
 }
 
-// 实现通用排序
+// 通用类型的list
 func TestElement(t *testing.T) {
 
 	var list Vector
 	ele := make([]Element, 100)
 	list.element = ele
 	list.set(1, 10)
-	fmt.Println(list.At(1))
+	list.set(2, "AAA")
+	fmt.Println(list.At(2))
 
-	//sort.Sort(list)
+}
 
+//复制自定义类型slice到空接口类型slice
+func TestCopySliceToEmptyInterface(t *testing.T) {
+
+	var s1 []Square = []Square{{1}, {2}, {3}}
+
+	var s2 []interface{} = make([]interface{}, len(s1))
+
+	//Cannot use 's1' (type []Square) as the type []interface{}
+	//s2 = s1
+
+	//只能遍历复制
+	for i, v := range s1 {
+		s2[i] = v
+	}
+}
+
+type ReaderWriter struct {
+	io.Reader
+	io.Writer
+}
+
+// 通过内嵌结构体实现继承, 也可以实现接口继承
+func TestMoreImpl(t *testing.T) {
+	var rw ReaderWriter
+	rw.Reader.Read([]byte{})
 }
