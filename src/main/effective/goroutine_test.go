@@ -57,6 +57,6 @@ func quickSort(start, end int, nums []int, chanSend chan int) {
 	<-chanReceive
 	<-chanReceive
 
-	//输入结束标志
+	//本次排序结束, 输入结束标志, 让上一层结束
 	chanSend <- 0
 }

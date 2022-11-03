@@ -64,12 +64,12 @@ func TestBufferChannel(t *testing.T) {
 
 	ch := make(chan string, 100)
 
-	// i < 100, 否则deadlock
-	for i := 0; i < 10; i++ {
+	// 但协程下 i < 100, 否则deadlock
+	for i := 0; i < 101; i++ {
 		ch <- strconv.Itoa(i)
 	}
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 101; i++ {
 		fmt.Println(<-ch)
 	}
 
@@ -91,7 +91,14 @@ func TestBlock(t *testing.T) {
 
 // 主协程阻塞到多个协程执行完成 （no buffer）
 func TestSemaphore(t *testing.T) {
+	/*
+		三个协程
+		主协程开启两个协程, 两个子协程执行结束后向通道中塞值, 主协程取值
+	*/
+
+	//int channel
 	chSemaphore := make(chan int)
+	//模拟快排
 	arr := make([]int, 100)
 	pivot := 5
 
@@ -112,7 +119,7 @@ func TestSemaphore(t *testing.T) {
 	<-chSemaphore
 }
 
-// 信号量
+// 有缓存channel实现信号量
 func TestSemaphoreV2(t *testing.T) {
 
 	N := 10
@@ -130,4 +137,35 @@ func TestSemaphoreV2(t *testing.T) {
 	for i := 0; i < N; i++ {
 		<-chSemaphore
 	}
+}
+
+// foreach channel 从channel中读取数据, 直到通道关闭
+func TestChanFor(t *testing.T) {
+
+	ch := make(chan int, 3)
+
+	//go func() {
+	//	//从channel中读取数据, 直到通道关闭 才往下执行
+	//	for v := range ch {
+	//		fmt.Printf("%v \n", v)
+	//	}
+	//	fmt.Println("exec after closed")//关闭channel后才会执行
+	//}()
+
+	go func() {
+		ch <- 0
+		ch <- 1
+		ch <- 2
+		time.Sleep(2e9)
+		close(ch)                      //主动关闭
+		fmt.Println("channel closing") //关闭channel
+	}()
+
+	for v := range ch {
+		fmt.Printf("%v \n", v)
+	}
+	fmt.Println("exec after closed") //关闭channel后才会执行
+
+	time.Sleep(10e9)
+
 }
