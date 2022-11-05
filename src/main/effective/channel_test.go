@@ -449,7 +449,9 @@ func server(workChan chan string) {
 }
 
 func safeDo(work string) {
-	//defer在return之后函数返回之前执行, 使用recover()可以捕获异常 使其他协程继续执行
+	//defer在return之后函数返回之前执行
+	//recover仅在defer中有效
+	//使用recover()可以捕获异常 使其他协程继续执行
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Printf("Work failed with %v in %v \n", err, work)
@@ -467,6 +469,9 @@ func doWork(work string) {
 
 //停掉了服务器内部一个失败的协程而不影响其他协程的工作
 func TestRecover(t *testing.T) {
+
+	//有 panic 没 recover，程序宕机
+	//有 panic 也有 defer recover，程序不会宕机，执行完对应的 defer 后，从宕机点退出当前函数后继续执行
 
 	ch := make(chan string)
 
