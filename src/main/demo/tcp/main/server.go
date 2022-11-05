@@ -5,6 +5,9 @@ import (
 	"net"
 )
 
+// 进入文件路径
+// .\server.exe
+// go run .\server.go
 func main() {
 	fmt.Println("Starting the server to listen localhost 50000...")
 	listen, err := net.Listen("tcp", "localhost:50000")
