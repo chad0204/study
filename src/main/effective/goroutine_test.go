@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"testing"
+	"time"
 )
 
 func Test(t *testing.T) {
@@ -59,4 +60,56 @@ func quickSort(start, end int, nums []int, chanSend chan int) {
 
 	//本次排序结束, 输入结束标志, 让上一层结束
 	chanSend <- 0
+}
+
+var values = []string{"a", "b", "c", "d", "e"}
+
+// 循环里面闭包使用goroutine, 一定要copy到新的变量
+func TestGoroutine(t *testing.T) {
+
+	//version1
+	for index := range values {
+		func() {
+			fmt.Print(index, " ")
+		}()
+	}
+	fmt.Println()
+
+	//version2 error
+	//for index := range values {
+	//	// index是单一变量,在所有goroutine中共享, 因为for很快执行完, 当协程执行到print时, index可能已经是最后一个索引值了
+	//	go func() {
+	//		fmt.Print(index, " ")
+	//	}()
+	//	//time.Sleep(1e8)
+	//}
+	//fmt.Println()
+
+	//version2_1 error
+	//for _, value := range values {
+	//	go func() {
+	//		fmt.Print(value, " ")
+	//	}()
+	//}
+
+	//version3 right one
+	for index := range values {
+		go func(idx int) {
+			fmt.Print(idx, " ")
+		}(index)
+	}
+	time.Sleep(1e8)
+	fmt.Println()
+
+	//version3_1 right one
+	for index := range values {
+		val := values[index]
+		go func() {
+			fmt.Print(val, " ")
+		}()
+	}
+	time.Sleep(1e8)
+	fmt.Println()
+
+	time.Sleep(1e9)
 }

@@ -164,6 +164,16 @@ func TestChanFor(t *testing.T) {
 	for v := range ch {
 		fmt.Printf("%v \n", v)
 	}
+
+	//等价于
+	//for {
+	//	v, open := <-ch
+	//	if !open {
+	//		break
+	//	}
+	//	fmt.Printf("%v \n", v)
+	//}
+
 	fmt.Println("exec after closed") //关闭channel后才会执行
 
 	time.Sleep(10e9)
