@@ -25,6 +25,14 @@ import (
 
 new和make用于分配内存, new用于值类型和用户自定义类型, 如自定义结构体, make用于内置的引用类型, 如slice、map、chan
 
+
+
+
+	将一个值类型作为一个参数传递给函数或者作为一个方法的接收者，似乎是对内存的滥用，因为值类型一直是传递拷贝。
+但是另一方面，值类型的内存是在栈上分配，内存分配快速且开销不大。如果你传递一个指针，而不是一个值类型，
+go编译器大多数情况下会认为需要创建一个对象，并将对象移动到堆上，所以会导致额外的内存分配：因此当使用指针
+代替值类型作为参数传递时，我们没有任何收获。
+
 ref:
 https://github.com/golang/go/wiki/CodeReviewComments#receiver-type
 https://studygolang.com/articles/32103
