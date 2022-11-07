@@ -32,10 +32,12 @@ func TestVar(t *testing.T) {
 	var i int
 	var f float64
 	var v V
+	var p *V // 任何类型的指针的零值都是nil
 	fmt.Println(s)
 	fmt.Println(i)
 	fmt.Println(f)
 	fmt.Println(v.i)
+	fmt.Println(p)
 
 	//类型推导
 	//var a, b, c = 1, 1.0, "str"
