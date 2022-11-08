@@ -6,27 +6,35 @@ import (
 )
 
 // 1. 数组是值传递、切片是引用传递。 数组传递需要拷贝值, 切片只需要传递引用, 效率更高。
-// 2. 数组需要定义长度、切片长度可以动态变化。
+// 2. 数组需要定义长度、切片长度可以动态变化。数组的长度是类型的一部分, [3]int和[2]int不是一个数组类型。
 // 3. 多个slice表示同一数组, 这些slice可以共享存储。数组是切片的构建块。当你有个数组arr需要函数传递，最好创建一个切片arr[:],传递这个切片。
 // go/src/runtime/slice.go
+
+//声明、零值、类型、值传递
 func TestArray(t *testing.T) {
 
 	//声明, 需要定义长度, 有初始化默认值
 	var arr [5]int
+	arr = [5]int{1, 2, 3, 4, 5}
 	fmt.Printf("Array is %v\n", arr)
 
-	// 初始化
-	var arr1 = [...]int{5, 6, 7, 8, 22}
-	//var arr2 = []int{5, 6, 7, 8, 22} // 这是一个切片
-	//var arr3 = [5]int{5, 6, 7, 8, 22}
+	// 初始化 ...表示长度就是元素个数 arr1、2、3等价
+	//var arr1 = [5]int{5, 6, 7, 8, 22}
+	var arr2 = [...]int{5, 6, 7, 8, 22}
+	//var arr3 = [...]int{0: 5, 1: 6, 2: 7, 3: 8, 4: 22}
+
 	//var arr4 = [5]string{0: "赋值索引0的字符串", 4: "赋值索引4的字符串"}
+	//var arr5 = [...]int{99: 2333} //声明一个长度为100的数组, 最后一个索引99的元素初始化为2333
+
+	// 没有定义长度 这是一个切片
+	//var slice1 = []int{5, 6, 7, 8, 22}
 
 	//是值类型
-	fmt.Printf("arr address:%p \n", &arr1)
-	exchange(arr1)
+	fmt.Printf("arr address:%p \n", &arr2)
+	exchange(arr2)
 	//exchangeRef(&arr1)
 
-	fmt.Printf("result: %v \n", arr1)
+	fmt.Printf("result: %v \n", arr2)
 
 }
 
@@ -49,22 +57,33 @@ func exchangeRef(arr *[5]int) {
 
 /*------------------------------------------------slice---------------------------------------------------------*/
 
+/**
+声明
+零值
+初始化
+
+*/
 func TestSlice(t *testing.T) {
 
 	//声明 一个切片在未初始化之前默认为 nil，长度为 0
 	var slice []string
 
-	//初始化
+	//定义一个原始数组
 	arr := [10]int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	//初始化
 	var slice1 []int = arr[0:9]
 	//var slice2 []int = arr[:] //完整
 	//var slice3 []int = arr[2:] //2 ~ len
 	//var slice4 []int = arr[:4] //0 ~ 4
 
+	//修改原始数组衍生的切片, 会影响原始数组的值
+	slice1[2] = 2333
+	fmt.Printf("arr %T, %v \n", arr, arr)
+
 	//声明 + 初始化
 	slice2 := []int{1, 2, 3}
 
-	//如果数组不存在, 可以使用make
+	//如果原始数组不存在, 可以使用make
 	s := make([]int, 10) //cap(s) == len(s) == 10
 	fmt.Printf("s %d, %d, %v \n", len(s), cap(s), s)
 
@@ -91,7 +110,7 @@ func exchangeSlice(arr []int) {
 func TestLenAndCap(t *testing.T) {
 
 	arr := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-	// len是元素个数, cap是最大容量，也就是2到10 = 8
+	// len是元素个数4, cap是最大容量8, 因为是从2开始切割也就是2到10 = 8
 	slice := arr[2:6] // 左闭右开
 
 	fmt.Printf("slice len = %d, cap = %d, %v \n", len(slice), cap(slice), slice)
