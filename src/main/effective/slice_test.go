@@ -59,8 +59,7 @@ func exchangeRef(arr *[5]int) {
 
 /**
 声明
-零值
-初始化
+零值 nil, new返回的是len=cap=0的切片
 
 */
 func TestSlice(t *testing.T) {
@@ -143,7 +142,7 @@ func TestLenAndCap(t *testing.T) {
 //new(T) 为每个新的类型T分配一片内存，初始化为 0 并且返回类型为*T的内存地址：这种方法 返回一个指向类型为 T，值为 0 的地址的指针，它适用于值类型如数组和结构体,它相当于 &T{}
 func TestMake(t *testing.T) {
 	//当没有前提数组时, 使用make创建切片
-	s := make([]int, 10)
+	s := make([]int, 0)
 
 	fmt.Printf("s len = %d, cap = %d, %v \n", len(s), cap(s), s)
 
@@ -152,7 +151,8 @@ func TestMake(t *testing.T) {
 
 	//new返回的是值对象的地址(引用), make返回的是引用对象（map\slice\channel）的值
 	s2 := new([]int)
-	fmt.Printf("s1 len = %d, cap = %d, %v \n", len(*s2), cap(*s2), *s2)
+
+	fmt.Printf("s2 len = %d, cap = %d, %v \n", len(*s2), cap(*s2), *s2)
 
 }
 
@@ -212,14 +212,13 @@ func TestAppend(t *testing.T) {
 	s := []int{1, 2, 3, 4, 5}
 	fmt.Printf("s len = %d, cap = %d, address = %p, %v \n", len(s), cap(s), &s, s)
 
-	//超过cap, 扩容一倍
-	s1 := append(s, 6)
-	s2 := append(s1, 7)
-	//超过s2的cap, 扩容一倍
-	s3 := append(s2, 8, 9, 10, 11)
-	fmt.Printf("s1 len = %d, cap = %d, address = %p, %v \n", len(s1), cap(s1), &s1, s1)
-	fmt.Printf("s2 len = %d, cap = %d, address = %p, %v \n", len(s2), cap(s2), &s2, s2)
-	fmt.Printf("s3 len = %d, cap = %d, address = %p, %v \n", len(s3), cap(s3), &s3, s3)
+	//len超过cap, 扩容一倍
+	for i := 0; i < 100; i++ {
+		//更新slice变量不仅对调用append函数是必要的，实际上对应任何可能导致长度、容量或底层数组变化的操作都是必要的
+		//你无法知道append操作之后, 底层数组的内存是否发生变化。
+		s = append(s, i)
+		fmt.Printf("s len = %d, cap = %d, address = %p, %v \n", len(s), cap(s), &s, s)
+	}
 
 }
 
@@ -237,7 +236,7 @@ func TestAppendChar(t *testing.T) {
 
 }
 
-//用copy实现append
+//用copy实现append, append可以理解为java list的add
 func AppendChar(slice []byte, ele ...byte) []byte {
 	oldLen := len(slice)
 	newLen := oldLen + len(ele)
@@ -254,4 +253,63 @@ func AppendChar(slice []byte, ele ...byte) []byte {
 	slice = slice[0:newLen]
 	copy(slice[oldLen:newLen], ele)
 	return slice
+}
+
+// 所有的Go语言函数应该以相同的方式对待nil值的slice和0长度的slice
+func TestReverse(t *testing.T) {
+	arr := [...]int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	reverse(nil)
+	reverse(arr[1:9])
+	fmt.Println(arr)
+}
+
+func reverse(s []int) {
+	l := len(s)
+	for i := 0; i < l; i++ {
+		l--
+		s[i], s[l] = s[l], s[i]
+	}
+}
+
+type Stack struct {
+	top []int
+}
+
+func (s *Stack) pop() int {
+	l := len(s.top) - 1
+	head := s.top[l]
+	s.top = s.top[0:l]
+	return head
+}
+
+func (s *Stack) push(v int) {
+	s.top = append(s.top, v)
+}
+
+func (s *Stack) len() int {
+	return len(s.top)
+}
+
+func TestStack(t *testing.T) {
+	s := new(Stack)
+
+	for i := 0; i < 100; i++ {
+		s.push(i)
+	}
+	for i := 0; i < 100; i++ {
+		fmt.Println(s.pop())
+	}
+	fmt.Printf("len := %v \n", s.len())
+}
+
+func remove(slice []int, index int) []int {
+	copy(slice[index:], slice[index+1:])
+	return slice[:len(slice)-1]
+}
+
+//删除某个元素, 保持原有顺序, 后面的元素依次向前移动一位
+func TestRemove(t *testing.T) {
+	slice := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
+	slice = remove(slice, 3)
+	fmt.Println(slice)
 }
