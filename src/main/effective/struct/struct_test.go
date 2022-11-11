@@ -2,12 +2,21 @@ package _struct
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 	"strconv"
 	"study/src/main/effective/struct/inner"
 	"testing"
 	"unsafe"
 )
+
+/**
+
+
+结构体有零值, 零值就是各个成员变量的零值
+
+
+*/
 
 // 数组也可以看成一种结构体, 下标相当于字段, 都是值类型
 type Demo struct {
@@ -60,7 +69,7 @@ type Node struct {
 	id    int
 	value Value
 	vp    *Value
-	//next Node//递归结构体, 不能嵌套自己。否则无法计算Demo的大小,指针的大小是固定的。
+	//next Node//递归结构体, 不能嵌套自己。否则无法计算Demo的大小,指针的大小是固定的。（该限制同样适用于数组）
 	next *Node
 }
 
@@ -176,8 +185,8 @@ func TestNewAndMake(t *testing.T) {
 }
 
 type TagFoo struct {
-	field1 string "tag1"
-	field2 int    "tag2"
+	field1 string `tag:"name"`
+	field2 int    `tag:"id"`
 }
 
 func TestTag(t *testing.T) {
@@ -193,6 +202,37 @@ func TestTag(t *testing.T) {
 
 	fmt.Printf("%v, %v", field1.Tag, field2.Tag)
 }
+
+type Employee struct {
+	id   int
+	name string
+}
+
+func EmpById(id int) *Employee {
+	employee := &Employee{234, "point_emp"}
+	return employee
+}
+
+func EmpByIdV2(id int) Employee {
+	employee := Employee{234, "value_emp"}
+	fmt.Printf("%v", &employee)
+	return employee
+}
+
+//返回值
+func TestReturn(t *testing.T) {
+
+	employee := EmpById(1)
+	employee.name = "_changed"
+	fmt.Println(&employee)
+
+	employee1 := EmpByIdV2(1)
+	employee1.name = "_changed"
+	fmt.Println(&employee1)
+
+}
+
+/**-----------------------------------面向对象---------------------------------------**/
 
 type Father struct {
 	firstName string
@@ -394,4 +434,42 @@ func TestStack(t *testing.T) {
 	fmt.Println(stack.pop())
 	fmt.Println(stack.size)
 
+}
+
+type Point struct {
+	x, y int
+}
+
+type Circle struct {
+	Point
+	Radius int
+}
+
+type Wheel struct {
+	Circle
+	Spokes int // 轮子辐条数
+}
+
+func (c *Circle) Len() float64 {
+	return math.Pi * float64(2) * float64(c.Radius)
+}
+
+func TestWheel(t *testing.T) {
+	wheel := Wheel{
+		Circle: Circle{
+			Point: Point{
+				x: 1,
+				y: 2,
+			},
+			Radius: 3,
+		},
+		Spokes: 2,
+	}
+	change(wheel)
+	fmt.Println(wheel.Circle.y)
+	fmt.Printf("fmt = %#v, v = %v \n", wheel, wheel)
+}
+
+func change(wheel Wheel) {
+	wheel.Circle.y = 233
 }
