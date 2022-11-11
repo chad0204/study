@@ -89,16 +89,16 @@ func TestCap(t *testing.T) {
 	//domainMap["a"].name = "233" + domainMap["a"].name//error
 	fmt.Println(domainMap["a"])
 
-	domainMap1 := map[string]*Domain{
+	domainMapRef := map[string]*Domain{
 		"b": {name: "original"},
 	}
 
 	//可以修改引用值类型
-	domain1 := domainMap1["b"]
+	domain1 := domainMapRef["b"]
 	domain1.name = "changed"
 	//上面的值类型无法下面操作
-	domainMap1["b"].name = "233" + domainMap1["b"].name
-	fmt.Println(domainMap1["b"])
+	domainMapRef["b"].name = "233" + domainMapRef["b"].name
+	fmt.Println(domainMapRef["b"])
 
 }
 
@@ -148,9 +148,18 @@ func TestMapForRange(t *testing.T) {
 	for _, v := range m {
 		fmt.Printf("v = %v \n", v)
 	}
+
+	for k, v := range m {
+		//都是复制出来的
+		if k == "k1" {
+			v = 233
+		}
+		fmt.Printf("k = %v, v = %v \n", k, v)
+	}
+	fmt.Println(m)
 }
 
-func TestMapSlice(t *testing.T) {
+func TestSliceMap(t *testing.T) {
 
 	mapSlice := []map[string]int{map[string]int{
 		"k": 1,
@@ -170,5 +179,71 @@ func TestMapSlice(t *testing.T) {
 		mapSliceV2[i] = make(map[string]int, 1)
 		mapSliceV2[i]["key"] = 999
 	}
+}
+
+// 比较map和slice
+func TestMapAddress(t *testing.T) {
+	m := make(map[string]int, 10)
+	m["a"]++
+	m["b"] += 1
+	m["c"] = 999
+	//i := &m["c"] //map中的元素不是变量, 不可以取址, 因为map使用过程中会增长而重新分配内存
+
+	//m1 := make(map[string]int, 10)
+	//fmt.Println(m == m1)//不可比较, 除了nil
+
+	//但是切片可以
+	slice := make([]int, 10)
+	for i := 0; i < len(slice); i++ {
+		fmt.Println(&slice[0])
+	}
+
+	//slice1 := make([]int, 10)
+	//fmt.Println(slice == slice1)//不可比较, 除了nil
+
+}
+
+func TestSliceAddress(t *testing.T) {
+	arr := [2]int{1, 2}
+	fmt.Printf("[0]address:= %v, len:= %v, cap:= %v \n", &arr[0], len(arr), cap(arr))
+	slice := arr[:1]
+	fmt.Printf("[0]address:= %v, len:= %v, cap:= %v \n", &slice[0], len(slice), cap(slice))
+
+	slice = append(slice, 1)
+	fmt.Printf("[0]address:= %v, len:= %v, cap:= %v \n", &slice[0], len(slice), cap(slice))
+
+	//切片如果从数组中slicing出来, 扩容之前取址是有意义的, 复制之后就没有意义了。map由于没有暴露内存给程序员, 所以禁止访问
+
+	slice = append(slice, 1) //发生扩容 索引0的地址变化, 说明低层数组变了
+	fmt.Printf("[0]address:= %v, len:= %v, cap:= %v \n", &slice[0], len(slice), cap(slice))
+	slice[0] = 2333 // 低层数组复制后修改切片不会改变原来的数组
+	fmt.Println(arr)
+
+}
+
+type Key struct {
+	name string
+	id   int
+}
+
+func TestStructMap(t *testing.T) {
+
+	var maps = make(map[Key]string, 1)
+	maps[Key{"name", 10}] = "2333"
+	maps[Key{"name", 11}] = "2334" //覆盖
+	fmt.Println(maps)
+
+	var m1 = make(map[string]Key, 1)
+	m1["a"] = Key{"a", 233}
+	fmt.Println(m1["a"].id)
+	//fmt.Println(&m1["a"])// 不能取址
+	//m1["a"].id = m1["a"].id + 1// 不能赋值
+
+	var m2 = make(map[string]*Key, 1)
+	m2["b"] = &Key{"b", 234}
+	fmt.Println(m2["b"].id)
+	//fmt.Println(&m2["b"])       // 不能取址
+	m2["b"].id = m2["b"].id + 1 // ok
+	fmt.Println(m2)
 
 }
