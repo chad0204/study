@@ -201,6 +201,8 @@ func TestMapAddress(t *testing.T) {
 	//slice1 := make([]int, 10)
 	//fmt.Println(slice == slice1)//不可比较, 除了nil
 
+	//不可比较的不能作为key!
+
 }
 
 func TestSliceAddress(t *testing.T) {
