@@ -3,6 +3,7 @@ package _struct
 import (
 	"fmt"
 	"strconv"
+	"sync"
 	"testing"
 )
 
@@ -53,7 +54,7 @@ func TestMethod(t *testing.T) {
 
 }
 
-// 非结构体接收者, slice的别名类型
+// 非结构体接收者, slice的别名类型。go可以给任何命名类型定义方法, 只要这个命名类型的低层类型(低层类型是指[]int, Slice是命名类型)不是指针或者interface
 type Slice []int
 
 func (s Slice) Sum() int {
@@ -124,6 +125,13 @@ func (s Service) valueM() string {
 	return "value"
 }
 
+/**
+
+1. 无论方法的receiver是*T还是T, 都可以通过指针和值进行调用, go编译器都会帮你做类型转换
+2. receiver类型的场景, 使用*T指向的都是同一块内存, receiver相当于是调用者的一个别名, 修改会影响调用者。使用T不会影响调用者,
+但是需要拷贝内存, 如果调用者本身特别大, 会有内存损耗。
+
+*/
 // 指针接收者和值接收者
 func TestValueAndPoint(t *testing.T) {
 
@@ -132,19 +140,22 @@ func TestValueAndPoint(t *testing.T) {
 
 	// 指针方法和值方法都可以在指针或非指针上被调用, 变量调用方法是不区分变量是值还是指针的, 只要可以寻址就行。（接口不是）
 
-	//指针可以调用值方法和指针方法
+	//指针可以调用值方法和指针方法(go编译器帮我们隐式转换了)
 	ps := &Service{}
 	ps.pointM()
 	ps.valueM() //指针调用值方法, 自动转换
 	(*ps).valueM()
 	(*ps).pointM() //值调用指针方法, 自动转换
 
-	//值可以调用值方法和指针方法
+	//值可以调用值方法和指针方法(go编译器帮我们隐式转换了)
 	vs := Service{}
 	vs.valueM()
 	vs.pointM()
 	(&vs).valueM()
 	(&vs).pointM()
+
+	Service{"biz"}.valueM()
+	//Service{"biz"}.pointM() //compile error
 
 }
 
@@ -198,6 +209,17 @@ type Duck struct {
 	Swim
 }
 
+//定义结构体变量, 并直接初始化变量
+var d = struct {
+	Fly
+	Swim
+	name   string
+	weight float64
+}{
+	name:   "duck",
+	weight: 5.4,
+}
+
 func (f *Fly) fly() {
 	fmt.Println("I can fly!")
 }
@@ -210,6 +232,66 @@ func TestMoreInherit(t *testing.T) {
 	duck := Duck{}
 	duck.fly()
 	duck.swim()
+	duck.Fly.fly()
+
+	d.fly()
+	fmt.Println(d.name)
 }
 
 // 和java相比, go的多态是通过组合实现的, 而不是继承, 更加灵活
+
+//cache直接拥有了加锁的能力
+var cache = struct {
+	sync.Mutex
+	mapping map[string]string
+}{
+	mapping: make(map[string]string),
+}
+
+func Lookup(key string) string {
+	cache.Lock()
+	defer cache.Unlock()
+	val := cache.mapping[key]
+	return val
+}
+
+type Person struct {
+	id int
+}
+
+func (p *Person) SetId(id int) {
+	p.id = id
+}
+
+func (p *Person) GetId() int {
+	return p.id
+}
+
+func (r *Person) Launch() {
+	r.id = 111
+}
+
+//方法值和方法表达式
+func TestMethodV(t *testing.T) {
+	person := Person{233}
+	//set就是方法值
+	set := person.SetId
+	set(1999)
+	fmt.Println(person.GetId())
+
+	//setId就是函数表达式
+	setId := (*Person).SetId
+	//第一个参数是接收器, 需要区分指针和值
+	setId(&person, 2000)
+	fmt.Println(person.GetId())
+
+}
+
+func TestBitSlice(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		//word是商, bit是取模
+		word, bit := i/64, uint(i%64)
+		fmt.Printf("i = %v, word = %v, bit = %v \n", i, word, bit)
+	}
+
+}
