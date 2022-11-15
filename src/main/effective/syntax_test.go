@@ -189,9 +189,11 @@ func TestType(t *testing.T) {
 
 func CToF(celsius Celsius) Fahrenheit {
 	//T(x), 将x转为T类型, 只有x和T的底层类型一样才能转换
-	//fahrenheit := float64(celsius)
-	fahrenheit := Fahrenheit(celsius)
-	return fahrenheit + 100
+	return Fahrenheit(celsius*9/5 + 32)
+}
+
+func FToC(fahrenheit Fahrenheit) Celsius {
+	return Celsius((fahrenheit - 32) * 5 / 9)
 }
 
 const (
