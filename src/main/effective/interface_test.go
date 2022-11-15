@@ -369,7 +369,7 @@ func TestElement(t *testing.T) {
 
 }
 
-//复制自定义类型slice到空接口类型slice
+// 复制自定义类型slice到空接口类型slice
 func TestCopySliceToEmptyInterface(t *testing.T) {
 
 	var s1 []Square = []Square{{1}, {2}, {3}}
@@ -429,10 +429,28 @@ func TestReceiver(t *testing.T) {
 	checkAndSet(&lock)
 }
 
+func testNil(lock ILock) {
+	//lock包含的是值为nil的ReentrantLock指针, 但是lock不是nil接口。这里并不能起到保护作用
+	if lock != nil {
+		lock.TryLock() //nil pointer
+	}
+}
+
+const debug = false
+
+// 包含nil指针的接口 不是nil接口
+func TestNilInterface(t *testing.T) {
+	var lock *ReentrantLock
+	if debug {
+		lock = &ReentrantLock{}
+	}
+	testNil(lock)
+}
+
 var period = flag.Duration("period", 5*time.Second, "sleep period")
 
-//flag.Value: 给命令行标记定义新的符号
-//如果是个main方法, build后, ./sleep -period 50ms
+// flag.Value: 给命令行标记定义新的符号
+// 如果是个main方法, build后, ./sleep -period 50ms
 func TestFlagValue(t *testing.T) {
 	flag.Parse()
 	fmt.Printf("Sleeping for %v... \n", *period)
