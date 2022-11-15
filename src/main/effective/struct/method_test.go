@@ -54,7 +54,7 @@ func TestMethod(t *testing.T) {
 
 }
 
-// 非结构体接收者, slice的别名类型。go可以给任何命名类型定义方法, 只要这个命名类型的低层类型(低层类型是指[]int, Slice是命名类型)不是指针或者interface
+// 非结构体接收者, slice的别名类型。go可以给任何命名类型定义方法, 只要这个命名类型的低层类型(低层类型是指[]int, Slice是命名类型)不是指针或者interface(slice、map是引用类型)。
 type Slice []int
 
 func (s Slice) Sum() int {
@@ -125,6 +125,10 @@ func (s Service) valueM() string {
 	return "value"
 }
 
+func (s Service) setName(name string) {
+	s.name = name
+}
+
 /**
 
 1. 无论方法的receiver是*T还是T, 都可以通过指针和值进行调用, go编译器都会帮你做类型转换
@@ -156,6 +160,12 @@ func TestValueAndPoint(t *testing.T) {
 
 	Service{"biz"}.valueM()
 	//Service{"biz"}.pointM() //compile error
+
+	//值类型receiver, 修改无效
+	s := new(Service)
+	s.name = "namename"
+	s.setName("2333")
+	fmt.Println(s.name)
 
 }
 
