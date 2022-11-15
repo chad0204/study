@@ -2,15 +2,16 @@ package effective
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"io"
 	"sort"
 	"testing"
+	"time"
 )
 
 /**
 永远不要使用一个指针指向一个接口类型，因为它已经是一个指针
-
 */
 
 // 如果接口只有一个方法, 命名规范是加er、able后缀。如Reader
@@ -43,7 +44,7 @@ func (t *Triangle) getHigh() int {
 
 func TestInterface(t *testing.T) {
 	var s Shaper   // 本质是一个指针, 没有赋值前不能直接使用
-	s = &Square{5} // 将结构体类型的指针赋值给接口类型的变了
+	s = &Square{5} // 将结构体类型的指针赋值给接口类型的变量
 	fmt.Println(s.Area())
 
 	//多态
@@ -132,7 +133,7 @@ func TestTypeAssert(t *testing.T) {
 	//triangle := &Triangle{2, 4}
 
 	if s, ok := square.(Shaper); ok {
-		fmt.Printf("this is a square, area = %v \n", s.Area())
+		fmt.Printf("this is a Shaper, area = %v \n", s.Area())
 	}
 }
 
@@ -177,7 +178,7 @@ func (l List) Len() int {
 }
 
 func (l *List) Append(val int) {
-	*l = append(*l, val) //如果接收者用值, 赋值操作会提示Assignment to the method receiver doesn't propagate to other calls
+	*l = append(*l, val) //如果接收者用值, 赋值操作时IDE会提示Assignment to the method receiver doesn't propagate to other calls
 }
 
 // 在接口上调用方法的方法 （接口本质是一个指针）
@@ -187,48 +188,43 @@ func CountInto(a Appender, start, end int) {
 	}
 }
 func LongEnough(l Lener) bool {
+	fmt.Println(l)
 	return l.Len()*10 > 42
 }
 
 // 值和类型
 func TestPointAndValue(t *testing.T) {
-	//众所周知 方法接收者不管是值还是指针, 指针和值变量都可以调用
+	//众所周知 方法接收者不管是值还是指针, 指针和值方法都可以调用（编译器隐式转换）
 
 	var l List
 
-	//list实现了Appender, 却无法作用Appender参数, 因为实现Appender.Append的接收者是list指针, 和CountInto形参不同
+	//List实现了Appender, 却无法作为CountInto的Appender类型参数, 因为实现List.Append的接收者是List指针, 和CountInto形参类型是值不同
 	//CountInto(l, 1, 10) // 可以使用&l
 
-	//list实现了Lener, 可以作Lener参数, 因为实现Lener.Len的接收者是list值, 和LongEnough形参一致
+	//List实现了Lener, 可以作LongEnough的Lener类型参数, 因为实现List.Len的接收者是List值, 和LongEnough形参一致
 	if LongEnough(l) {
 		fmt.Printf("l is long enough\n")
 	} else {
 		fmt.Printf("l is not long enough\n")
 	}
 
-	pl := new(List)
+	pointL := new(List)
 
-	//可以作为pl可以作为Appender, 因为实现Append方法的接收者是指针
-	CountInto(pl, 1, 10)
+	//可以作为pointL可以作为Appender, 因为实现Append方法的接收者是指针
+	CountInto(pointL, 1, 10)
 
-	//奇怪的是这里也可以, LongEnough参数类型不是指针, 而实现Len方法的接收者是值。因为类型指针会被自动解引用（形参是接口）
-	if LongEnough(pl) {
+	//奇怪的是这里也可以, LongEnough参数类型不是指针, 而实现Len方法的接收者是值。因为类型指针会被自动解引用（当形参类型是接口时）
+	if LongEnough(pointL) {
 		fmt.Printf("l is long enough\n")
 	} else {
 		fmt.Printf("l is not long enough\n")
 	}
 
 	//在接口上调用方法时，必须有和方法定义时相同的接收者类型或者是可以从具体类型 P 直接可以辨识的：
-	//1 指针方法可以通过指针调用 CountInto(pl, 1, 10)
-	//2 值方法可以通过值调用 LongEnough(l)
-	//3 接收者是值的方法可以通过指针调用，因为指针会首先被解引用 LongEnough(pl)
-	//4 接收者是指针的方法不可以通过值调用，因为存储在接口中的值没有地址 CountInto(l, 1, 10)
+	//1 指针方法的对象, 作为接口类型参数时, 只能将指针赋值给接口参数 CountInto(&l, 1, 10)可以, CountInto(l, 1, 10)不行, 因为存储在接口中的值没有地址。
+	//2 值方法的对象, 作为接口类型参数时, 指针或值都可以赋值给接口参数  LongEnough(l), LongEnough(&l)也可以, 因为指针会被解引用。
 
 	//CountInto(l, 1, 10) 将一个值赋值给一个接口时，编译器会确保所有可能的接口方法都可以在此值上被调用，因此不正确的赋值在编译期就会失败。
-
-	data := []int{74, 59, 238, -784, 9845, 959, 905, 0, 0, 42, 7586, -5467984, 7586}
-
-	sort.Ints(data)
 
 }
 
@@ -398,4 +394,47 @@ type ReaderWriter struct {
 func TestMoreImpl(t *testing.T) {
 	var rw ReaderWriter
 	rw.Reader.Read([]byte{})
+}
+
+type ILock interface {
+	TryLock() bool
+	Release()
+}
+
+type ReentrantLock struct {
+}
+
+func (r ReentrantLock) TryLock() bool {
+	fmt.Println("tryLock")
+	return true
+}
+
+func (r ReentrantLock) Release() {
+	fmt.Println("Release")
+}
+
+func checkAndSet(lock ILock) {
+	if l := lock.TryLock(); l {
+		lock.Release()
+	}
+}
+
+// receiver
+func TestReceiver(t *testing.T) {
+	lock := ReentrantLock{}
+
+	//如果结构体实现接口的方法都是值方法, 那么指针和值都可以作为接口参数。只要有一个方法不是值方法, 就只能用指针作为接口参数
+	// 修改TryLock或Release的receiver为指针可以看到编译报错
+	checkAndSet(lock)
+	checkAndSet(&lock)
+}
+
+var period = flag.Duration("period", 5*time.Second, "sleep period")
+
+//flag.Value: 给命令行标记定义新的符号
+//如果是个main方法, build后, ./sleep -period 50ms
+func TestFlagValue(t *testing.T) {
+	flag.Parse()
+	fmt.Printf("Sleeping for %v... \n", *period)
+	//time.Sleep(*period)
 }
