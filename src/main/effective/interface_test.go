@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net/http"
 	"sort"
 	"testing"
 	"time"
@@ -144,6 +145,33 @@ func TestTypeSwitch(t *testing.T) {
 
 }
 
+func TestWriter(t *testing.T) {
+
+}
+
+func writeHeader(w io.Writer, contentType string) error {
+	//需要copy []byte
+	if _, err := w.Write([]byte(contentType)); err != nil {
+		return err
+	}
+	//无需copy []byte
+	if _, err := writeString(w, contentType); err != nil {
+		return err
+	}
+	return nil
+}
+
+func writeString(w io.Writer, s string) (n int, err error) {
+	//type stringWriter interface {
+	//	WriteString(string) (n int, err error)
+	//}
+	//判断w是不是stringWriter类型, 是的话直接执行WriteString, 无需将字符串转未byte数组
+	if sw, ok := w.(io.StringWriter); ok {
+		return sw.WriteString(s) // avoid a copy
+	}
+	return w.Write([]byte(s)) // allocate temporary copy
+}
+
 func typeSwitch(args ...interface{}) {
 	for i, v := range args {
 		switch v.(type) {
@@ -195,7 +223,6 @@ func LongEnough(l Lener) bool {
 // 值和类型
 func TestPointAndValue(t *testing.T) {
 	//众所周知 方法接收者不管是值还是指针, 指针和值方法都可以调用（编译器隐式转换）
-
 	var l List
 
 	//List实现了Appender, 却无法作为CountInto的Appender类型参数, 因为实现List.Append的接收者是List指针, 和CountInto形参类型是值不同
@@ -232,37 +259,54 @@ type day struct {
 	num       int
 	shortName string
 	longName  string
+	workNum   int //工作日排序, 周一为第一天
 }
 
 // v1
 type daySlice struct {
-	data []*day
+	data []day //引用快递
 }
 
-func (x *daySlice) Len() int           { return len(x.data) }
-func (x *daySlice) Less(i, j int) bool { return x.data[i].num < x.data[j].num }
-func (x *daySlice) Swap(i, j int)      { x.data[i], x.data[j] = x.data[j], x.data[i] }
+func (x daySlice) Len() int           { return len(x.data) }
+func (x daySlice) Less(i, j int) bool { return x.data[i].num < x.data[j].num }
+func (x daySlice) Swap(i, j int)      { x.data[i], x.data[j] = x.data[j], x.data[i] }
 
-// v2
-type daySliceV2 []day //可以用指针 也可以用值
+// v2 常用
+type ByNum []*day //day可以用指针也可以用值, 指针更省空间
 
-func (x daySliceV2) Len() int           { return len(x) }
-func (x daySliceV2) Less(i, j int) bool { return x[i].num < x[j].num }
-func (x daySliceV2) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
+func (x ByNum) Len() int           { return len(x) }
+func (x ByNum) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
+func (x ByNum) Less(i, j int) bool { return x[i].num < x[j].num }
+
+type ByWorkNum []*day // 和ByNum有重复方法, 可以复用Len和Swap.  type days []*day, type ByNum struct {days}, ype ByWorkNum struct {days}
+
+func (x ByWorkNum) Len() int           { return len(x) }
+func (x ByWorkNum) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
+func (x ByWorkNum) Less(i, j int) bool { return x[i].workNum < x[j].workNum }
+
+//通过内置函数, 实现时自定义排序
+type customSort struct {
+	days []*day
+	less func(x, y *day) bool
+}
+
+func (c customSort) Len() int           { return len(c.days) }
+func (c customSort) Swap(i, j int)      { c.days[i], c.days[j] = c.days[j], c.days[i] }
+func (c customSort) Less(i, j int) bool { return c.less(c.days[i], c.days[j]) }
 
 // 自定义weekday排序
 func TestSored(t *testing.T) {
 
-	Sunday := day{0, "SUN", "Sunday"}
-	Monday := day{1, "MON", "Monday"}
-	Tuesday := day{2, "TUE", "Tuesday"}
-	Wednesday := day{3, "WED", "Wednesday"}
-	Thursday := day{4, "THU", "Thursday"}
-	Friday := day{5, "FRI", "Friday"}
-	Saturday := day{6, "SAT", "Saturday"}
+	Sunday := day{0, "SUN", "Sunday", 6}
+	Monday := day{1, "MON", "Monday", 0}
+	Tuesday := day{2, "TUE", "Tuesday", 1}
+	Wednesday := day{3, "WED", "Wednesday", 2}
+	Thursday := day{4, "THU", "Thursday", 3}
+	Friday := day{5, "FRI", "Friday", 4}
+	Saturday := day{6, "SAT", "Saturday", 5}
 
 	// v1
-	data := []*day{&Tuesday, &Thursday, &Wednesday, &Sunday, &Monday, &Friday, &Saturday}
+	data := []day{Tuesday, Thursday, Wednesday, Sunday, Monday, Friday, Saturday}
 	a := new(daySlice)
 	a.data = data
 
@@ -277,9 +321,9 @@ func TestSored(t *testing.T) {
 	fmt.Printf("\n")
 
 	// v2
-	dataV2 := []day{Tuesday, Thursday, Wednesday, Sunday, Monday, Friday, Saturday}
-	v2 := daySliceV2(dataV2) // 语法糖
-	sort.Sort(daySliceV2(dataV2))
+	dataV2 := []*day{&Tuesday, &Thursday, &Wednesday, &Sunday, &Monday, &Friday, &Saturday}
+	v2 := ByNum(dataV2) // 语法糖
+	sort.Sort(ByNum(dataV2))
 	if !sort.IsSorted(v2) {
 		fmt.Errorf("fail %v", v2)
 	}
@@ -289,16 +333,28 @@ func TestSored(t *testing.T) {
 	}
 	fmt.Printf("\n")
 
-	//引用传递, 如果用指针 应该是防止copy
-	changeSlice(v2)
-	for _, d := range v2 {
+	//逆序
+	v3 := ByWorkNum(dataV2)
+	sort.Sort(sort.Reverse(v3)) //Reverse包一层, 反转了less
+	if !sort.IsSorted(v3) {
+		fmt.Errorf("fail %v", v3)
+	}
+	fmt.Printf("v3 sorted: ")
+	for _, d := range v3 {
 		fmt.Printf("%s ", d.longName)
 	}
 	fmt.Printf("\n")
-}
 
-func changeSlice(days daySliceV2) {
-	days[0] = day{7, "unKnow", "unKnow"}
+	//customSort
+	sort.Sort(customSort{dataV2, func(x, y *day) bool {
+		if x.num != y.num {
+			return x.num < y.num
+		}
+		if x.workNum != y.workNum {
+			return x.workNum < y.workNum
+		}
+		return false
+	}})
 }
 
 // interface {} 变量在内存中占据两个字长：一个用来存储它包含的类型，另一个用来存储它包含的数据或者指向数据的指针
@@ -431,6 +487,10 @@ func TestReceiver(t *testing.T) {
 
 func testNil(lock ILock) {
 	//lock包含的是值为nil的ReentrantLock指针, 但是lock不是nil接口。这里并不能起到保护作用
+	//T = *effective.ReentrantLock,v = <nil>
+	//T = <nil>,v = <nil>
+	fmt.Printf("T = %T,v = %v \n", lock, lock)
+
 	if lock != nil {
 		lock.TryLock() //nil pointer
 	}
@@ -440,7 +500,8 @@ const debug = false
 
 // 包含nil指针的接口 不是nil接口
 func TestNilInterface(t *testing.T) {
-	var lock *ReentrantLock
+	//var lock *ReentrantLock //T = *effective.ReentrantLock,v = <nil>
+	var lock ILock //T = <nil>,v = <nil>
 	if debug {
 		lock = &ReentrantLock{}
 	}
@@ -455,4 +516,37 @@ func TestFlagValue(t *testing.T) {
 	flag.Parse()
 	fmt.Printf("Sleeping for %v... \n", *period)
 	//time.Sleep(*period)
+}
+
+type ServerHandler struct {
+}
+
+//如果使用指针receiver, 接口做为参数时, 不能使用接口保存对象值。接口中的值没有地址, 只能用存指针。如果不是需要改变原变量, 直接用值做receiver
+func (s *ServerHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+}
+
+func TestHttpHandler(t *testing.T) {
+	var hdl http.Handler
+	hdl = &ServerHandler{}
+	http.ListenAndServe("localhost:8080", hdl)
+}
+
+//实现error接口
+type MyError struct {
+	msg string
+}
+
+func (e *MyError) Error() string {
+	return e.msg
+}
+
+//工厂方法 一般用fmt.Errorf("EOF")
+func New(msg string) error {
+	return &MyError{msg: msg}
+}
+
+//error接口
+func TestErrorInterface(t *testing.T) {
+	fmt.Println(New("EOF") == New("EOF"))
+	fmt.Println(fmt.Errorf("EOF") == fmt.Errorf("EOF"))
 }
