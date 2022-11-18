@@ -85,14 +85,14 @@ func TestGoroutine(t *testing.T) {
 	//}
 	//fmt.Println()
 
-	//version2_1 error
+	//version2_1 操作value也是error
 	//for _, value := range values {
 	//	go func() {
 	//		fmt.Print(value, " ")
 	//	}()
 	//}
 
-	//version3 right one
+	//version3 right
 	for index := range values {
 		go func(idx int) {
 			fmt.Print(idx, " ")

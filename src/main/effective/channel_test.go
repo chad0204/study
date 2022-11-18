@@ -68,11 +68,47 @@ func TestBufferChannel(t *testing.T) {
 	for i := 0; i < 101; i++ {
 		ch <- strconv.Itoa(i)
 	}
+	fmt.Printf("ch cap: %v, len: %v \n", cap(ch), len(ch))
 
 	for i := 0; i < 101; i++ {
 		fmt.Println(<-ch)
 	}
 
+}
+
+//无缓冲chan和缓冲为1的chan的区别
+func TestBufferAndBufferLen(t *testing.T) {
+	//无缓冲chan的发送和接收是同时发送的, 也就是同步的, 所以不能串行, 必须由不同的协程操作。
+	unbuffered := make(chan int)
+	go func() {
+		unbuffered <- 1
+		fmt.Printf("unbuffered cap: %v, len: %v \n", cap(unbuffered), len(unbuffered))
+	}()
+	<-unbuffered
+
+	//缓冲为1的chan, 是可以在同一个goroutine中串行执行的, 可以使操作解耦。但是不要把缓冲chan当作队列在同一个goroutine中使用,因为一旦超过缓冲, 该goroutine将永远阻塞
+	bufferedOne := make(chan int, 1)
+	bufferedOne <- 1
+	fmt.Printf("bufferedOne cap: %v, len: %v \n", cap(bufferedOne), len(bufferedOne))
+	<-bufferedOne
+
+}
+
+func request(hostname string) (response string) {
+	//remote request
+	return "res"
+}
+
+//缓存chan的应用
+func TestBufferedDemo(t *testing.T) {
+	responses := make(chan string, 3)
+	//同时向数据库的三个副本发送请求, 返回最快的
+	go func() { responses <- request("192.1.1.1.1") }()
+	go func() { responses <- request("192.1.1.1.2") }()
+	go func() { responses <- request("192.1.1.1.3") }()
+	fmt.Println(<-responses)
+
+	//注意： 如果使用无缓冲chan, 那么有两个goroutine将被阻塞无法结束, 这种goroutine无法被GC回收, 称为goroutine泄露
 }
 
 // 想让主协程在子协程完成后退出
@@ -183,7 +219,7 @@ func TestChanFor(t *testing.T) {
 //返回一个只读的channel
 func pump() <-chan int {
 	ch := make(chan int)
-	//协程中执行, 不然阻塞
+	//协程中执行, 不然阻塞主函数
 	go func() {
 		for i := 0; ; i++ {
 			ch <- i
@@ -220,7 +256,7 @@ func TestChannelFactory(t *testing.T) {
 func TestSendRecvOnly(t *testing.T) {
 	//只能向通道发送数据
 	sendOnly := make(chan<- string)
-	//只接收的通道（<-chan T）无法关闭, 准备的说是不必关闭, 关闭表示不能向通道发送数据。
+	//只接收的通道（<-chan T）无法关闭, 准确的说是不必关闭, 关闭表示不能向通道发送数据。
 	recvOnly := make(<-chan int)
 
 	go func(send chan<- string, recv <-chan int) {
@@ -228,9 +264,78 @@ func TestSendRecvOnly(t *testing.T) {
 			result := strconv.Itoa(i) + ">>>"
 			send <- result
 		}
-
 	}(sendOnly, recvOnly)
+}
 
+//goroutine -> chan -> goroutine -> chan...
+//关闭chan不是必须的, gc会帮你处理, 只是当需要告知其他goroutine无需等待时才有意义
+func TestPipeline(t *testing.T) {
+
+	natural := make(chan int)
+
+	go func() {
+		for i := 0; i < 100; i++ {
+			natural <- i
+		}
+		close(natural)
+	}()
+
+	square := make(chan int)
+
+	go func() {
+		//for {
+		//	i, ok := <-natural
+		//	if !ok {
+		//		break
+		//	}
+		//	square <- i * i
+		//}
+		//比上面更简洁
+		for i := range natural {
+			square <- i * i
+		}
+		close(square)
+	}()
+
+	for {
+		time.Sleep(1e8)
+		i, ok := <-square
+		fmt.Println(i)
+		if !ok {
+			break
+		}
+	}
+
+}
+
+func count() <-chan int {
+	natural := make(chan int)
+	go func() {
+		for i := 0; i < 100; i++ {
+			natural <- i
+		}
+		close(natural)
+	}()
+	return natural
+}
+
+//双向可以转单向 单向不能转双向
+func sqrt(in <-chan int) <-chan int {
+	square := make(chan int)
+	go func() {
+		for v := range in {
+			square <- v * v
+		}
+		close(square)
+	}()
+	return square
+}
+
+func TestPipelineV2(t *testing.T) {
+	res := sqrt(count())
+	for v := range res {
+		fmt.Println(v)
+	}
 }
 
 func generate() chan int {
@@ -248,10 +353,11 @@ func filter(in chan int, prime int) chan int {
 	outCh := make(chan int)
 	go func() {
 		for {
-			//3 4 5 6 7 8 9 10 11 12 13..  %2
-			//5 7 9 11 13.. %3
-			//7 11 13.. %5
-			//..
+			//第一个filter的输入chan是 234567...     ,%2 后输出chan是 3 4 5 6 7 8 9 10 11 12 13..
+			//第二个filter的输入chan是上一个filter的输出,%3 后输出chan是 5 7 9 11 13.. %3
+			//第二个filter的输入chan是上一个filter的输出,%5 后而输出chan是 7 11 13.. %5
+			//..，
+			//filter形成一个pipeline goroutine -> chan -> goroutine -> chan ...
 			if i := <-in; i%prime != 0 {
 				outCh <- i
 			}
@@ -284,7 +390,7 @@ func TestPrimeNumber(t *testing.T) {
 
 //close
 
-//关闭通道 只有发送者需要关闭通道 表示告诉接收者不会再有新的值了
+//关闭通道 只有发送者需要关闭通道 表示告诉接收者不会再有新的值了。已关闭的channel无法发送, 但依然可以接收
 func generateV2() chan int {
 	ch := make(chan int)
 	go func() {
@@ -391,7 +497,7 @@ func TestTick(t *testing.T) {
 	// 每秒执行10次
 	rate_per_sec := 10
 	var dur = time.Duration(1e9 / rate_per_sec)
-	//返回的tick是一个只接收通道（保证外部只能进行读取操作）, 每dur会写入一个值
+	//返回的tick是一个只接收通道（保证外部只能进行读取操作）, 函数内部每dur会写入一个值
 	tick := time.Tick(dur)
 
 	for {
@@ -404,8 +510,9 @@ func TestTick(t *testing.T) {
 //Timer只设置一次时间
 func TestTimer(t *testing.T) {
 
-	tick := time.Tick(1e9)  //1s一次
-	over := time.After(5e9) //5s后执行一次
+	tick := time.Tick(1e9) //每秒向chan写入一个值。如果下面的循环退出会造成goroutine泄露
+	fmt.Printf("tick chan, cap: %v, len: %v \n", cap(tick), len(tick))
+	over := time.After(5e9) //5s后向chan写入一个值
 
 	for {
 		select {
@@ -422,6 +529,33 @@ func TestTimer(t *testing.T) {
 	}
 }
 
+//打印偶数
+func TestSelectTwo(t *testing.T) {
+
+	abort := make(chan struct{})
+
+	go func() {
+		//10s后终止下面的循环
+		time.Sleep(10e9)
+		abort <- struct{}{}
+	}()
+
+	ch := make(chan int, 1)
+	for i := 0; i < 100; i++ {
+		select {
+		case x := <-ch: //当i=1,3,5时, 都走到该分支进行输出
+			fmt.Println(x) // "0" "2" "4" "6" "8"
+		case ch <- i: //当i=0,2,4,6时, 判断case时发送i,下次循环就会走第一个case
+			//do nothing
+		case <-abort:
+			fmt.Println("abort")
+			return
+		}
+		time.Sleep(5e8)
+	}
+
+}
+
 type Conn struct {
 	replica int
 }
@@ -434,8 +568,8 @@ func TestQuery(t *testing.T) {
 
 	conns := []Conn{{1}, {2}, {3}}
 
-	//无缓存channel必须异步执行, 也就是存和取‘同时’发生。有缓存channel可以一个协程执行
-	res := make(chan string, 1)
+	//无缓存channel必须异步执行, 也就是存和取‘同时’发生。
+	res := make(chan string, len(conns))
 
 	//从多个副本数据库中查询数据, 第一个返回的就是结果
 	for _, conn := range conns {
@@ -498,4 +632,20 @@ func TestRecover(t *testing.T) {
 
 	time.Sleep(10e9)
 
+}
+
+/*----------------------------------------------------写着玩-----------------------------------------------------------*/
+
+func TestC1(t *testing.T) {
+	nums := []int{1, 2, 3, 4, 5}
+	for _, num := range nums {
+		//go func() {
+		//	fmt.Println(num * num)
+		//}()
+		i := num
+		go func() {
+			fmt.Println(i * i)
+		}()
+	}
+	time.Sleep(1e9)
 }
