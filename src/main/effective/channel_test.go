@@ -2,6 +2,8 @@ package effective
 
 import (
 	"fmt"
+	"math/rand"
+	"runtime"
 	"strconv"
 	"testing"
 	"time"
@@ -38,7 +40,7 @@ func receiveData(c chan string) {
 	}
 }
 
-//无缓冲通道, 发送一个数据后当前协程就会block. 接收和发送需要异步处理
+// 无缓冲通道, 发送一个数据后当前协程就会block. 接收和发送需要异步处理
 func TestDeadLock(t *testing.T) {
 	c := make(chan string)
 
@@ -59,7 +61,7 @@ func TestDeadLock(t *testing.T) {
 
 }
 
-//缓冲通道具备弹性, 只有空和满会阻塞
+// 缓冲通道具备弹性, 只有空和满会阻塞
 func TestBufferChannel(t *testing.T) {
 
 	ch := make(chan string, 100)
@@ -76,7 +78,7 @@ func TestBufferChannel(t *testing.T) {
 
 }
 
-//无缓冲chan和缓冲为1的chan的区别
+// 无缓冲chan和缓冲为1的chan的区别
 func TestBufferAndBufferLen(t *testing.T) {
 	//无缓冲chan的发送和接收是同时发送的, 也就是同步的, 所以不能串行, 必须由不同的协程操作。
 	unbuffered := make(chan int)
@@ -99,7 +101,7 @@ func request(hostname string) (response string) {
 	return "res"
 }
 
-//缓存chan的应用
+// 缓存chan的应用
 func TestBufferedDemo(t *testing.T) {
 	responses := make(chan string, 3)
 	//同时向数据库的三个副本发送请求, 返回最快的
@@ -175,6 +177,57 @@ func TestSemaphoreV2(t *testing.T) {
 	}
 }
 
+// 记录协程数量
+var calculates = make(chan int)
+var currentTotal = make(chan int)
+
+func Incr() {
+	calculates <- 1
+}
+func Decr() {
+	calculates <- -1
+}
+
+func Total() int {
+	return <-currentTotal
+}
+
+func process() {
+	//模拟业务方法
+	time.Sleep(time.Duration(rand.Intn(100000)) * time.Millisecond)
+}
+
+// 限制最多同时有10个goroutine在执行
+func TestSemaphoreV3(t *testing.T) {
+
+	// 10个信号量
+	token := make(chan struct{}, 10)
+
+	//监视总共有多少goroutine在执行
+	go func() {
+		total := 0
+		for {
+			select {
+			case v := <-calculates:
+				total += v
+			case currentTotal <- total:
+			}
+		}
+	}()
+
+	for i := 0; ; i++ {
+		token <- struct{}{} //acquire TODO acquire是否放goroutine着里面更合适？
+		go func(i int) {
+			Incr()
+			//total是程序计数, NumGoroutine是go本身的计数, test会有两个goroutine, 还有一个是total监控goroutine, 要去掉
+			fmt.Printf("This goroutine total = %v, %v \n", Total(), runtime.NumGoroutine()-2-1)
+			process()
+			<-token //release
+			Decr()
+		}(i)
+	}
+}
+
 // foreach channel 从channel中读取数据, 直到通道关闭（会自动检测）才会向下执行
 func TestChanFor(t *testing.T) {
 
@@ -216,7 +269,7 @@ func TestChanFor(t *testing.T) {
 
 }
 
-//返回一个只读的channel
+// 返回一个只读的channel
 func pump() <-chan int {
 	ch := make(chan int)
 	//协程中执行, 不然阻塞主函数
@@ -228,7 +281,7 @@ func pump() <-chan int {
 	return ch
 }
 
-//取
+// 取
 func suck(ch <-chan int) {
 	go func() {
 		for {
@@ -237,7 +290,7 @@ func suck(ch <-chan int) {
 	}()
 }
 
-//取
+// 取
 func suckForeach(ch <-chan int) {
 	go func() {
 		for v := range ch {
@@ -246,13 +299,13 @@ func suckForeach(ch <-chan int) {
 	}()
 }
 
-//管道工厂
+// 管道工厂
 func TestChannelFactory(t *testing.T) {
 	suckForeach(pump())
 	time.Sleep(1e9)
 }
 
-//通道方向
+// 通道方向
 func TestSendRecvOnly(t *testing.T) {
 	//只能向通道发送数据
 	sendOnly := make(chan<- string)
@@ -267,8 +320,8 @@ func TestSendRecvOnly(t *testing.T) {
 	}(sendOnly, recvOnly)
 }
 
-//goroutine -> chan -> goroutine -> chan...
-//关闭chan不是必须的, gc会帮你处理, 只是当需要告知其他goroutine无需等待时才有意义
+// goroutine -> chan -> goroutine -> chan...
+// 关闭chan不是必须的, gc会帮你处理, 只是当需要告知其他goroutine无需等待时才有意义
 func TestPipeline(t *testing.T) {
 
 	natural := make(chan int)
@@ -319,7 +372,7 @@ func count() <-chan int {
 	return natural
 }
 
-//双向可以转单向 单向不能转双向
+// 双向可以转单向 单向不能转双向
 func sqrt(in <-chan int) <-chan int {
 	square := make(chan int)
 	go func() {
@@ -348,7 +401,7 @@ func generate() chan int {
 	return ch
 }
 
-//从in channel过滤出不能被prime整除的数 输出到outCh
+// 从in channel过滤出不能被prime整除的数 输出到outCh
 func filter(in chan int, prime int) chan int {
 	outCh := make(chan int)
 	go func() {
@@ -379,7 +432,7 @@ func sieve() chan int {
 	return out
 }
 
-//输出素数 prime number
+// 输出素数 prime number
 func TestPrimeNumber(t *testing.T) {
 	primeCh := sieve()
 
@@ -390,7 +443,7 @@ func TestPrimeNumber(t *testing.T) {
 
 //close
 
-//关闭通道 只有发送者需要关闭通道 表示告诉接收者不会再有新的值了。已关闭的channel无法发送, 但依然可以接收
+// 关闭通道 只有发送者需要关闭通道 表示告诉接收者不会再有新的值了。已关闭的channel无法发送, 但依然可以接收
 func generateV2() chan int {
 	ch := make(chan int)
 	go func() {
@@ -402,7 +455,7 @@ func generateV2() chan int {
 	return ch
 }
 
-//从in channel过滤出不能被prime整除的数 输出到outCh
+// 从in channel过滤出不能被prime整除的数 输出到outCh
 func filterV2(in chan int, prime int) chan int {
 	outCh := make(chan int)
 	go func() {
@@ -438,7 +491,7 @@ func sieveV2() chan int {
 	return out
 }
 
-//输出素数 prime number 带关闭
+// 输出素数 prime number 带关闭
 func TestPrimeNumberWithClose(t *testing.T) {
 	primeCh := sieveV2()
 
@@ -492,7 +545,7 @@ func TestSelect(t *testing.T) {
 	time.Sleep(1e9)
 }
 
-//使用tick进行限速
+// 使用tick进行限速
 func TestTick(t *testing.T) {
 	// 每秒执行10次
 	rate_per_sec := 10
@@ -507,7 +560,7 @@ func TestTick(t *testing.T) {
 
 }
 
-//Timer只设置一次时间
+// Timer只设置一次时间
 func TestTimer(t *testing.T) {
 
 	tick := time.Tick(1e9) //每秒向chan写入一个值。如果下面的循环退出会造成goroutine泄露
@@ -529,7 +582,7 @@ func TestTimer(t *testing.T) {
 	}
 }
 
-//打印偶数
+// 打印偶数
 func TestSelectTwo(t *testing.T) {
 
 	abort := make(chan struct{})
@@ -611,7 +664,7 @@ func doWork(work string) {
 	fmt.Println(work + " done.")
 }
 
-//停掉了服务器内部一个失败的协程而不影响其他协程的工作
+// 停掉了服务器内部一个失败的协程而不影响其他协程的工作
 func TestRecover(t *testing.T) {
 
 	//有 panic 没 recover，程序宕机
