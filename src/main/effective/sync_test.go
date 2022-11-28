@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 )
 
 var balance int
@@ -191,3 +192,79 @@ func TestSafeBankV2(t *testing.T) {
 }
 
 /**------------------------------------------------------------------------------------------------------------------*/
+
+type Singleton struct {
+	name string
+}
+
+var (
+	once     sync.Once
+	INSTANCE *Singleton
+	lock     sync.RWMutex
+)
+
+func getInstanceUnsafe() *Singleton {
+	if INSTANCE == nil {
+		INSTANCE = &Singleton{"2333"}
+	}
+	return INSTANCE
+}
+
+func getInstanceLock() *Singleton {
+	//读和读不互斥
+	lock.RLock()
+	//读写互斥, 保证不会发生指令重排, 返回初始化不完全的对象
+	if INSTANCE != nil {
+		lock.RUnlock()
+		return INSTANCE
+	}
+	lock.RUnlock()
+
+	lock.Lock()
+	//再次判断防止重复初始化
+	if INSTANCE == nil {
+		INSTANCE = &Singleton{name: "2333"}
+	}
+	lock.Unlock()
+
+	return INSTANCE
+}
+
+func getInstanceOnce() *Singleton {
+	once.Do(func() {
+		INSTANCE = &Singleton{name: "2333"}
+	})
+	return INSTANCE
+}
+
+func TestSingleton(t *testing.T) {
+	for i := 0; i < 10000; i++ {
+		var s1 *Singleton
+		var s2 *Singleton
+		done := make(chan int, 2)
+		go func() {
+			s1 = getInstanceLock()
+			done <- 0
+		}()
+		go func() {
+			s2 = getInstanceLock()
+			done <- 0
+		}()
+		<-done
+		<-done
+		if s1 != s2 {
+			fmt.Printf("s1 = %v, s2 = %v, s1 == s2: %v \n", &s1, &s2, s1 == s2)
+		}
+		INSTANCE = nil
+	}
+}
+
+func TestSpeed(t *testing.T) {
+	start := time.Now() // 获取当前时间
+	for i := 0; i < 10000000; i++ {
+		//getInstanceLock()//135.4997ms
+		getInstanceOnce() //18.9349ms
+	}
+	elapsed := time.Since(start)
+	fmt.Println("used time: ", elapsed)
+}
