@@ -1,5 +1,14 @@
 package main
 
+/*
+g1 -> requests
+g2 -> requests
+g3 -> requests
+
+monitor <- requests
+
+cache 只有monitor可以访问
+*/
 type result struct {
 	err   error
 	value interface{}
@@ -10,7 +19,7 @@ type entry struct {
 	res   result
 }
 
-//封装调用Get的每一次请求
+// 封装调用Get的每一次请求
 type request struct {
 	response chan<- result
 	key      string
@@ -30,7 +39,7 @@ func New(f Func) *Memo {
 	return m
 }
 
-//Get 遍历所有的请求进行处理
+// Get 遍历所有的请求进行处理
 func (mem *Memo) server(f Func) {
 	cache := make(map[string]*entry)
 	for req := range mem.requests {
