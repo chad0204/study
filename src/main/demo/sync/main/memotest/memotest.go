@@ -12,6 +12,7 @@ import (
 
 //!+httpRequestBody
 func httpGetBody(url string) (interface{}, error) {
+	fmt.Printf("==========================> call url: %v \n", url)
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -29,13 +30,14 @@ func incomingURLs() <-chan string {
 	go func() {
 		//构建一些相同的url
 		for _, url := range []string{
-			"https://golang.org",
-			"https://godoc.org",
-			"https://play.golang.org",
-			"http://gopl.io",
-			"https://golang.org",
-			"https://godoc.org",
-			"https://play.golang.org",
+			"https://www.baidu.com/",
+			"https://cn.bing.com/",
+			"https://cn.bing.com/",
+			"https://books.studygolang.com/gopl-zh/ch9/ch9-07.html",
+			"http://books.studygolang.com/advanced-go-programming-book/",
+			"https://cn.bing.com/",
+			"https://cn.bing.com/",
+			"https://www.baidu.com/",
 			"http://gopl.io",
 		} {
 			ch <- url
