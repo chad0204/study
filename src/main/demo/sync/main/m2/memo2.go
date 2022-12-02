@@ -19,6 +19,7 @@ func New(f Func) *Memo {
 	return &Memo{f: f, cache: make(map[string]result)}
 }
 
+// Get 相当于串行
 func (mem *Memo) Get(key string) (interface{}, error) {
 	mem.mu.Lock()
 	res, ok := mem.cache[key]
