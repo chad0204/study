@@ -146,6 +146,7 @@ func TestValueAndPoint(t *testing.T) {
 
 	//指针可以调用值方法和指针方法(go编译器帮我们隐式转换了)
 	ps := &Service{}
+	//var ps *Service 这样是npe, 可以这样写,先声明值变量var p Service再取址ps := &p
 	ps.pointM()
 	ps.valueM() //指针调用值方法, 自动转换
 	(*ps).valueM()
