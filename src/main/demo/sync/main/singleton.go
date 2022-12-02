@@ -32,7 +32,7 @@ func getInstanceLock() *Singleton {
 	}
 	lock.RUnlock()
 
-	lock.Lock()
+	lock.Lock() //多个goroutine阻塞在这里
 	//再次判断防止重复初始化
 	if INSTANCE == nil {
 		INSTANCE = &Singleton{name: "2333"}
