@@ -164,7 +164,7 @@ func TestSetup(t *testing.T) {
 	fmt.Println(a)
 }
 
-//对应两个producer
+// 对应两个producer
 var over = make(chan struct{})
 
 func producer(factor int, containers chan<- interface{}) {
@@ -185,7 +185,7 @@ func consumer(containers <-chan interface{}) {
 	fmt.Println(" c over")
 }
 
-//producer and consumer
+// producer and consumer
 func TestVChannel(t *testing.T) {
 	containers := make(chan interface{}, 100)
 
