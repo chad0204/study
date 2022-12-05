@@ -132,7 +132,7 @@ func (o *Once) Do(f func()) {
 	}
 }
 
-//基于once的单例
+// 基于once的单例
 var one Once
 
 func InstanceV2() *singleton {
@@ -142,7 +142,6 @@ func InstanceV2() *singleton {
 	return instance
 }
 
-//
 var a string
 var dones = make(chan bool)
 var done bool
