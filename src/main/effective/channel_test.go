@@ -521,7 +521,7 @@ func pump2(ch chan<- int) {
 
 func selectSuck(c1, c2 chan int) {
 	for {
-		// 都阻塞 select阻塞. 如果有default不阻塞, 执行default
+		// 都阻塞 select阻塞. 如果有default不阻塞, 执行default, 如果没有default和case, 一直阻塞
 		// 都有值 随机执行
 		//
 		select {

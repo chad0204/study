@@ -5,6 +5,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 // 1. 互斥锁
@@ -142,6 +143,7 @@ func InstanceV2() *singleton {
 	return instance
 }
 
+// 一种异常
 var a string
 var dones = make(chan bool)
 var done bool
@@ -160,4 +162,39 @@ func TestSetup(t *testing.T) {
 	//for !done {}
 	<-dones
 	fmt.Println(a)
+}
+
+//对应两个producer
+var over = make(chan struct{})
+
+func producer(factor int, containers chan<- interface{}) {
+	for i := 0; ; i++ {
+		select {
+		case containers <- i * factor:
+		case <-over:
+			fmt.Println("p over")
+			break
+		}
+	}
+}
+
+func consumer(containers <-chan interface{}) {
+	for v := range containers {
+		fmt.Printf("consume value: %v \n", v)
+	}
+	fmt.Println(" c over")
+}
+
+//producer and consumer
+func TestVChannel(t *testing.T) {
+	containers := make(chan interface{}, 100)
+
+	go producer(3, containers)
+	go producer(5, containers)
+	go consumer(containers)
+
+	time.Sleep(1e8)
+	over <- struct{}{}
+	over <- struct{}{}
+
 }
