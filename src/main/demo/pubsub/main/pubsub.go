@@ -9,7 +9,7 @@ import (
 
 type (
 	subscriber chan interface{}         //订阅者是一个管道
-	topicFunc  func(v interface{}) bool //主题是一个过滤函数
+	topicFunc  func(v interface{}) bool //主题是一个过滤函数, 过滤发布的消息。如果不为空, 且判断为false, 就不接收该消息。
 )
 
 //发布者对象
@@ -63,7 +63,7 @@ func (p *Publisher) Close() {
 	}
 }
 
-//发布主题
+// 发布主题
 func (p *Publisher) Publish(v interface{}) {
 	p.m.RLock()
 	defer p.m.RUnlock()
@@ -82,6 +82,7 @@ func (p *Publisher) sendTopic(
 	val interface{},
 	wg *sync.WaitGroup,
 ) {
+	defer wg.Done()
 	if topic != nil && !topic(val) {
 		return
 	}
@@ -91,7 +92,6 @@ func (p *Publisher) sendTopic(
 	case sub <- val:
 	case <-time.After(p.timeout):
 	}
-	defer wg.Done()
 }
 
 func main() {
@@ -106,7 +106,7 @@ func main() {
 		}
 	}()
 
-	//订阅主题“golang”的订阅者
+	//订阅包含"golang"的订阅者
 	golangSub := p.SubscribeTopic(func(v interface{}) bool {
 		if s, ok := v.(string); ok {
 			//s 包含 golang
@@ -120,7 +120,7 @@ func main() {
 		}
 	}()
 
-	p.Publish("hello,  world!")
+	p.Publish("hello, world!")
 	p.Publish("hello, golang!")
 
 	time.Sleep(3 * time.Second)
