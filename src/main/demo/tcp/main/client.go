@@ -10,7 +10,7 @@ import (
 
 func main() {
 
-	conn, err := net.Dial("tcp", "localhost:50000")
+	conn, err := net.Dial("tcp", "192.168.31.34:50000")
 	if err != nil {
 		fmt.Println("Error dialing", err.Error())
 		return

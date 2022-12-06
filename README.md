@@ -14,3 +14,7 @@ https://geekr.dev/posts/go-sorting-algorithm-merge
 http://books.studygolang.com/
 
 https://draveness.me/golang/docs/part3-runtime/ch07-memory/golang-stack-management/#%E5%AF%84%E5%AD%98%E5%99%A8
+
+
+
+# 函数、切片、map 不可比较
