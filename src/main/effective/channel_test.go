@@ -406,9 +406,9 @@ func filter(in chan int, prime int) chan int {
 	outCh := make(chan int)
 	go func() {
 		for {
-			//第一个filter的输入chan是 234567...     ,%2 后输出chan是 3 4 5 6 7 8 9 10 11 12 13..
-			//第二个filter的输入chan是上一个filter的输出,%3 后输出chan是 5 7 9 11 13.. %3
-			//第二个filter的输入chan是上一个filter的输出,%5 后而输出chan是 7 11 13.. %5
+			//第一个filter的输入chan是 34567...     ,%2 后输出chan是 3 5 7 9 11 13 15 17..
+			//第二个filter的输入chan是上一个filter的输出(去掉3),%3 后输出chan是 5 7 11 13 17..
+			//第二个filter的输入chan是上一个filter的输出(去掉5),%5 后而输出chan是 7 11 13 17..
 			//..，
 			//filter形成一个pipeline goroutine -> chan -> goroutine -> chan ...
 			if i := <-in; i%prime != 0 {
@@ -430,6 +430,14 @@ func sieve() chan int {
 		}
 	}()
 	return out
+}
+
+func TestAAa(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		if i%2 != 0 && i%3 != 0 {
+			fmt.Println(i)
+		}
+	}
 }
 
 // 输出素数 prime number

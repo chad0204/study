@@ -1,6 +1,7 @@
 package effective
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -197,4 +198,141 @@ func TestVChannel(t *testing.T) {
 	over <- struct{}{}
 	over <- struct{}{}
 
+}
+
+func generateNums(ctx context.Context) <-chan int {
+	nums := make(chan int)
+	go func() {
+		for i := 2; ; i++ {
+			select {
+			case nums <- i:
+			case <-ctx.Done(): //通知结束
+				fmt.Println("generate done")
+				return
+			}
+		}
+	}()
+	return nums
+}
+
+func filterPrime(nums <-chan int, prime int, ctx context.Context) <-chan int {
+	filters := make(chan int)
+	go func() {
+		for {
+			if i := <-nums; i%prime != 0 {
+				select {
+				case <-ctx.Done():
+					fmt.Println("filter done")
+					return
+				case filters <- i:
+				}
+			}
+		}
+	}()
+	return filters
+}
+
+//打印素数
+func TestPrime(t *testing.T) {
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
+	nums := generateNums(ctx)
+
+	//生成100个素数
+	for i := 0; i < 100; i++ {
+		prime := <-nums
+		fmt.Println(prime)
+		nums = filterPrime(nums, prime, ctx)
+	}
+	time.Sleep(10e9) // 这段时间 goroutine没有释放
+	fmt.Println("start cancel goroutine")
+	cancelFunc()
+}
+
+// select实现随机数
+func TestSelectForRandom(t *testing.T) {
+	random := make(chan int)
+
+	//0到4的随机数
+	go func() {
+		for {
+			//select会随机选择一个可以操作的chan进行操作
+			select {
+			case random <- 0:
+			case random <- 1:
+			case random <- 2:
+			case random <- 3:
+			case random <- 4:
+			}
+		}
+	}()
+
+	for rdm := range random {
+		fmt.Println(rdm)
+	}
+}
+
+func worker(wg *sync.WaitGroup, cancel chan bool) {
+	defer wg.Done()
+	for {
+		select {
+		default:
+			//do something
+			fmt.Println(".")
+		case <-cancel:
+			fmt.Println("cancel")
+			return
+		}
+	}
+}
+
+// 使用select + close(chan)实现广播关闭goroutine （go没有提供关闭goroutine的方法）
+func TestSelectForClose(t *testing.T) {
+	cancel := make(chan bool)
+	var wg sync.WaitGroup
+
+	//如果要关闭多个goroutine, 不需要多个chan, 可以通过close(chan)来做到
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go worker(&wg, cancel)
+	}
+
+	time.Sleep(1 * time.Second)
+	//cancel <- true
+	close(cancel)
+
+	//time.Sleep(10e9) //这个时间不好确定, 改用wg
+	wg.Wait()
+}
+
+func workerCTX(wg *sync.WaitGroup, ctx context.Context) error {
+	defer wg.Done()
+	for {
+		select {
+		default:
+			//do something
+			fmt.Println(".")
+		case <-ctx.Done():
+			fmt.Println("done")
+			return ctx.Err()
+		}
+	}
+}
+
+func TestContextForClose(t *testing.T) {
+	var wg sync.WaitGroup
+
+	timeout, cancelFunc := context.WithTimeout(context.Background(), 10e9)
+
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go workerCTX(&wg, timeout)
+	}
+
+	time.Sleep(1 * time.Second)
+	//cancel <- true
+	cancelFunc()
+
+	wg.Wait()
 }
