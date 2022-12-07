@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+
+package main;
+
+option go_package = "./main;helloService";
+
+
+message Param {
+  repeated string data = 1; //可以重复多次
+  int32 code = 2;
+  int64 id = 3;
+}
+
+service HelloService {
+  rpc Hello (Param) returns (Param);
+}

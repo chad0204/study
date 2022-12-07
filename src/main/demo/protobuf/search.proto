@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package search;
+
+option go_package = "./proto;search";
+
+// protoc --java_out=./ ./SearchRequest.proto
+message SearchRequest {
+  string query = 1; // string默认是空字符串
+  int32 page_number = 2; // 数值默认是0
+  int32 result_per_page = 3; //[19000－19999] 是预留的 不可用使用
+  enum Corpus {
+    UNIVERSAL = 0;
+    WEB = 1;
+    IMAGES = 2;
+    LOCAL = 3;
+    NEWS = 4;
+    PRODUCTS = 5;
+    VIDEO = 6;
+  }
+  Corpus corpus = 4;
+}
+
+message SearchResponse {
+  reserved 2, 15, 9 to 11; // 保留标识号
+  reserved "foo", "bar"; // 保留域名称
+  string res = 1;
+  int32 code = 3;
+}
+
+message Result {
+  string data = 1;
+  string url = 2;
+  repeated string ip = 3;
+}
