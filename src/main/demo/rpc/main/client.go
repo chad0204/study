@@ -22,8 +22,23 @@ func DailHelloService(network, address string) (*HelloServiceClient, error) {
 	return &HelloServiceClient{clientCodec}, nil
 }
 
-func (hello *HelloServiceClient) hello(request string, replay *string) error {
-	return hello.Client.Call(api.HelloServiceName+".Hello", request, replay)
+func (hello *HelloServiceClient) hello(args string, reply *string) error {
+	return hello.Client.Call(api.HelloServiceName+".Hello", args, reply)
+}
+
+func (hello *HelloServiceClient) helloAsync(args string, reply *string) {
+	//异步调用
+	call := hello.Client.Go(api.HelloServiceName+".Hello", args, reply, nil) //nil
+
+	// do something else
+
+	call = <-call.Done
+	if err := call.Error; err != nil {
+		log.Fatal(err)
+	}
+	a := call.Args.(string)
+	r := call.Reply.(*string)
+	fmt.Println(a, *r)
 }
 
 func main() {
@@ -37,6 +52,8 @@ func main() {
 	if err != nil {
 		log.Fatal("Call error: ", err)
 	}
-
 	fmt.Println(reply)
+
+	service.helloAsync("pcpcpc233", &reply)
+
 }
