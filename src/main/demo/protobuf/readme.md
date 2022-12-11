@@ -1,6 +1,6 @@
 #编译go、java文件
 
-##1. 安装proto解压, 执行protoc.exe
+##1. 安装proto解压, mac brew install protobuf
 
 ##2. 编译成java、python直接
 ./protoc.exe --java_out=./ ./demo.proto
@@ -9,6 +9,11 @@
 ##3. 编译成go需要在protoc的bin目录下添加protoc-gen-go.exe
    进入protoc-gen-go编译 go build main.go 重命名main.exe为protoc-gen-go.exe
    将protoc-gen-go.exe移到protoc的bin目录下
+      
+   mac的话把构建的protoc-gen-go二进制文件放到gopath下
+
+
+
    demo.proto文件需要添加package和option
    执行 ./protoc.exe --go_out=./ ./demo.proto
    ./protoc.exe --go_out=. demo.proto
