@@ -3,7 +3,7 @@ syntax = "proto3";
 
 package main;
 
-option go_package = "./main;helloService";
+option go_package = "./main";
 
 
 message Param {
