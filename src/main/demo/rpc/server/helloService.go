@@ -16,7 +16,7 @@ func (helloService *DefaultHelloService) Hello(request string, reply *string) er
 	return nil
 }
 
-func main1() {
+func main_____() {
 	api.RegisterHelloService(new(DefaultHelloService))
 
 	//也可以使用http协议, http.HandleFunc
