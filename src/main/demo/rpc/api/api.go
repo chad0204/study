@@ -2,7 +2,7 @@ package api
 
 import "net/rpc"
 
-//标记唯一名 , api不能放在main包,
+// 标记唯一名 , api不能放在main包,
 const HelloServiceName = "src/main/demo/rpc/api/api.HelloService"
 const KvStoreServiceName = "src/main/demo/rpc/api/api.KvStoreService"
 
