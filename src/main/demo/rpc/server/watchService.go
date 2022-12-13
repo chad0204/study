@@ -33,6 +33,7 @@ func (p *DefaultKvStoreService) Set(kv [2]string, reply *struct{}) error {
 	if oldValue := p.cache[key]; oldValue != value {
 		// value有变动, 执行所有的filter函数
 		for _, filter := range p.filters {
+			//filter函数是想通道发送数据, 当chan满了, set将会阻塞
 			filter(key)
 		}
 	}
@@ -51,26 +52,29 @@ func (p *DefaultKvStoreService) Get(key string, value *string) error {
 	return fmt.Errorf("not found key: %v", key)
 }
 
+// 调用watch是阻塞的, 超时时间是timeout
 func (p *DefaultKvStoreService) Watch(timeout int, keyChanged *string) error {
 	watchId := fmt.Sprintf("watch-%s-%03d", time.Now(), rand.Int())
+	calls := make(chan string, 1) // buffer 防止filter导致Set方法阻塞
+	defer func() {
+		p.mu.Lock()
+		delete(p.filters, watchId)
+		p.mu.Unlock()
+		close(calls)
+	}()
 
-	calls := make(chan string, 100) // buffer 防止filter导致Set方法阻塞
-
-	fmt.Printf("filter set before: %v \n", watchId)
 	p.mu.Lock()
 	p.filters[watchId] = func(key string) {
-		calls <- key
+		calls <- key // TODO 会阻塞set, set不释放锁, 导致watch和set死锁
 	}
 	p.mu.Unlock()
-	fmt.Printf("filter set after: %v \n", watchId)
 
 	select {
 	case <-time.After(time.Duration(timeout) * time.Second):
-		fmt.Printf("timeout")
+		fmt.Println("timeout")
 	case key := <-calls:
 		fmt.Printf("select key changed: %v \n", key)
 		*keyChanged = key
-		return nil
 	}
 	return nil
 }

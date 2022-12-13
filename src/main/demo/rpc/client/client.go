@@ -8,7 +8,6 @@ import (
 	"net/rpc/jsonrpc"
 	"strconv"
 	"study/src/main/demo/rpc/api"
-	"sync"
 	"time"
 )
 
@@ -60,53 +59,55 @@ func callHello() {
 	service.helloAsync("pcpcpc233", &reply)
 }
 
-func callWatch() {
+func Watch(timeout int, client *rpc.Client) {
+	var keyChanged string
+	//阻塞调用
+	err := client.Call(api.KvStoreServiceName+".Watch", timeout, &keyChanged)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("watch:", keyChanged)
+}
+
+func Set(k string, v string, client *rpc.Client) {
+	err := client.Call(api.KvStoreServiceName+".Set", [2]string{k, v}, new(struct{}))
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func Get(k string, client *rpc.Client) {
+	var reply string
+	err := client.Call(api.KvStoreServiceName+".Get", k, &reply)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("result: %v \n", reply)
+}
+
+func main() {
 	conn, e := net.Dial("tcp", "localhost:2333")
 	if e != nil {
 		return
 	}
 	client := rpc.NewClient(conn)
 
-	var wg = sync.WaitGroup{}
+	//注册watch
 
-	go func() {
-		wg.Add(1)
-		for i := 0; i < 10; i++ {
-			var keyChanged string
-			err := client.Call(api.KvStoreServiceName+".Watch", 3, &keyChanged)
-			if err != nil {
-				log.Fatal(err)
-			}
-			fmt.Println("watch:", keyChanged)
-		}
-		wg.Done()
-	}()
-
-	time.Sleep(1e9)
-
-	go func() {
-		wg.Add(1)
-		for i := 0; i < 10; i++ {
-			e = client.Call(api.KvStoreServiceName+".Set", [2]string{"abc", strconv.Itoa(i)}, new(struct{}))
-			if e != nil {
-				log.Fatal(e)
-			}
-		}
-		wg.Done()
-	}()
-
-	wg.Wait()
-
-	var reply string
-	e = client.Call(api.KvStoreServiceName+".Get", "abc", &reply)
-	if e != nil {
-		log.Fatal(e)
+	for i := 0; i < 100; i++ {
+		go func() {
+			Watch(100, client)
+		}()
 	}
-	fmt.Println(reply)
 
-}
+	time.Sleep(time.Duration(5) * time.Second)
 
-func main() {
+	//for i := 0; i < 100; i++ {
+	Set("key", strconv.Itoa(235), client)
+	//}
 
-	callWatch()
+	Get("key", client)
+
+	time.Sleep(time.Duration(1000) * time.Second)
+
 }
