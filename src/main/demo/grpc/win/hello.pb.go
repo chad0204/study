@@ -4,7 +4,7 @@
 // 	protoc        v3.15.5
 // source: hello.proto
 
-package main
+package win
 
 import (
 	context "context"
@@ -99,11 +99,11 @@ func file_hello_proto_rawDescGZIP() []byte {
 
 var file_hello_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_hello_proto_goTypes = []interface{}{
-	(*String)(nil), // 0: main.String
+	(*String)(nil), // 0: mac.String
 }
 var file_hello_proto_depIdxs = []int32{
-	0, // 0: main.HelloService.Hello:input_type -> main.String
-	0, // 1: main.HelloService.Hello:output_type -> main.String
+	0, // 0: mac.HelloService.Hello:input_type -> mac.String
+	0, // 1: mac.HelloService.Hello:output_type -> mac.String
 	1, // [1:2] is the sub-list for method output_type
 	0, // [0:1] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -175,7 +175,7 @@ func NewHelloServiceClient(cc grpc.ClientConnInterface) HelloServiceClient {
 
 func (c *helloServiceClient) Hello(ctx context.Context, in *String, opts ...grpc.CallOption) (*String, error) {
 	out := new(String)
-	err := c.cc.Invoke(ctx, "/main.HelloService/Hello", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/mac.HelloService/Hello", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +209,7 @@ func _HelloService_Hello_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/main.HelloService/Hello",
+		FullMethod: "/mac.HelloService/Hello",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(HelloServiceServer).Hello(ctx, req.(*String))
@@ -218,7 +218,7 @@ func _HelloService_Hello_Handler(srv interface{}, ctx context.Context, dec func(
 }
 
 var _HelloService_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "main.HelloService",
+	ServiceName: "mac.HelloService",
 	HandlerType: (*HelloServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
