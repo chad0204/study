@@ -12,8 +12,6 @@ import (
 	sync "sync"
 
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
@@ -184,15 +182,18 @@ func (c *helloServiceClient) Hello(ctx context.Context, in *String, opts ...grpc
 
 // HelloServiceServer is the server API for HelloService service.
 type HelloServiceServer interface {
-	Hello(context.Context, *String) (*String, error)
+	Hello(ctx context.Context, args *String) (*String, error)
 }
 
 // UnimplementedHelloServiceServer can be embedded to have forward compatible implementations.
 type UnimplementedHelloServiceServer struct {
 }
 
-func (*UnimplementedHelloServiceServer) Hello(context.Context, *String) (*String, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Hello not implemented")
+//自定义一下
+func (*UnimplementedHelloServiceServer) Hello(ctx context.Context, args *String) (*String, error) {
+	reply := &String{Value: "hello:" + args.GetValue()}
+	//return nil, status.Errorf(codes.Unimplemented, "method Hello not implemented")
+	return reply, nil
 }
 
 func RegisterHelloServiceServer(s *grpc.Server, srv HelloServiceServer) {
