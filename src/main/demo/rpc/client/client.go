@@ -93,7 +93,6 @@ func main() {
 	client := rpc.NewClient(conn)
 
 	//注册watch
-
 	for i := 0; i < 100; i++ {
 		go func() {
 			Watch(100, client)
