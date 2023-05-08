@@ -246,8 +246,8 @@ func TestChanFor(t *testing.T) {
 		ch <- 1
 		ch <- 2
 		time.Sleep(2e9)
-		close(ch)                      //主动关闭
-		fmt.Println("channel closing") //关闭channel
+		close(ch) //主动关闭, 不然会死锁
+		fmt.Println("channel closing")
 	}()
 
 	for v := range ch {
@@ -467,17 +467,22 @@ func generateV2() chan int {
 func filterV2(in chan int, prime int) chan int {
 	outCh := make(chan int)
 	go func() {
-		for {
-			i, ok := <-in
-			if !ok {
-				close(outCh)
-				break
-			}
+		//for {
+		//	i, ok := <-in
+		//	if !ok {
+		//		close(outCh)
+		//		break
+		//	}
+		//	if i%prime != 0 {
+		//		outCh <- i
+		//	}
+		//}
+		for i := range in {
 			if i%prime != 0 {
 				outCh <- i
 			}
 		}
-
+		close(outCh)
 	}()
 	return outCh
 }
@@ -556,8 +561,8 @@ func TestSelect(t *testing.T) {
 // 使用tick进行限速
 func TestTick(t *testing.T) {
 	// 每秒执行10次
-	rate_per_sec := 10
-	var dur = time.Duration(1e9 / rate_per_sec)
+	ratePerSec := 10
+	var dur = time.Duration(1e9 / ratePerSec)
 	//返回的tick是一个只接收通道（保证外部只能进行读取操作）, 函数内部每dur会写入一个值
 	tick := time.Tick(dur)
 
