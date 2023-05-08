@@ -17,7 +17,7 @@ func Balance() int {
 	return balance
 }
 
-func clear() {
+func Clear() {
 	balance = 0
 }
 
@@ -26,7 +26,7 @@ func TestUnSafeBank(t *testing.T) {
 	countNum := 0 //执行次数
 	errNum := 0   //错误次数
 	for {
-		clear() //每次开始需要重新置为0
+		Clear() //每次开始需要重新置为0
 		countNum++
 
 		//wait保证两个goroutine都执行完成再进行判断
@@ -75,7 +75,7 @@ func BalanceSafe() int {
 	return <-balances
 }
 
-func Clear() {
+func ClearSafe() {
 	clearChan <- struct{}{}
 }
 
@@ -89,7 +89,6 @@ func TestSafeBank(t *testing.T) {
 		for {
 			select {
 			case amount := <-deposits: //有存钱动作 计算金额
-
 				b = b + amount
 			case balances <- b: //将金额设置到通道中
 
@@ -102,7 +101,7 @@ func TestSafeBank(t *testing.T) {
 	countNum := 0 //执行次数
 	errNum := 0   //错误次数
 	for {
-		Clear()
+		ClearSafe()
 		countNum++
 		done := make(chan int)
 
@@ -151,11 +150,10 @@ func DepositV2(amount int) {
 func BalanceV2() int {
 	defer func() {
 		//<-sema
-		mu.Unlock()
 		mu.RUnlock()
 	}()
 	//sema <- 0
-	mu.RUnlock()
+	mu.RLock()
 	return balance
 }
 
@@ -198,7 +196,6 @@ type Singleton struct {
 }
 
 var (
-	once     sync.Once
 	INSTANCE *Singleton
 	lock     sync.RWMutex
 )
@@ -230,6 +227,9 @@ func getInstanceLock() *Singleton {
 	return INSTANCE
 }
 
+var once sync.Once
+
+//提供了一种更快的方式
 func getInstanceOnce() *Singleton {
 	once.Do(func() {
 		INSTANCE = &Singleton{name: "2333"}
