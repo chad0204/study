@@ -17,7 +17,7 @@ func TestChannel(t *testing.T) {
 	//c2 := make(chan int) //声明并初始化内存
 
 	//默认是无缓存通道。发送完成,没有被接收之前当前协程阻塞。 接收协程也是阻塞,直到有其他协程发送
-	//接收和发送都会阻塞协程。
+	//接收和发送都会阻塞协程, 所以必须在goroutine中收发。
 	go sendData(c1)
 	go receiveData(c1)
 
@@ -41,6 +41,7 @@ func receiveData(c chan string) {
 }
 
 // 无缓冲通道, 发送一个数据后当前协程就会block. 接收和发送需要异步处理
+// main执行会报错: fatal error: all goroutines are asleep - deadlock!
 func TestDeadLock(t *testing.T) {
 	c := make(chan string)
 
@@ -67,7 +68,7 @@ func TestBufferChannel(t *testing.T) {
 	ch := make(chan string, 100)
 
 	// 但协程下 i < 100, 否则deadlock
-	for i := 0; i < 101; i++ {
+	for i := 0; i < 100; i++ {
 		ch <- strconv.Itoa(i)
 	}
 	fmt.Printf("ch cap: %v, len: %v \n", cap(ch), len(ch))
@@ -80,7 +81,7 @@ func TestBufferChannel(t *testing.T) {
 
 // 无缓冲chan和缓冲为1的chan的区别
 func TestBufferAndBufferLen(t *testing.T) {
-	//无缓冲chan的发送和接收是同时发送的, 也就是同步的, 所以不能串行, 必须由不同的协程操作。
+	//无缓冲chan的发送和接收是同时发生的, 也就是同步的, 所以不能串行, 必须由不同的协程操作。
 	unbuffered := make(chan int)
 	go func() {
 		unbuffered <- 1
@@ -88,7 +89,8 @@ func TestBufferAndBufferLen(t *testing.T) {
 	}()
 	<-unbuffered
 
-	//缓冲为1的chan, 是可以在同一个goroutine中串行执行的, 可以使操作解耦。但是不要把缓冲chan当作队列在同一个goroutine中使用,因为一旦超过缓冲, 该goroutine将永远阻塞
+	//缓冲为1的chan, 是可以在同一个goroutine中串行执行的, 可以使操作解耦。
+	//但是不要把缓冲chan当作队列在同一个goroutine中使用,因为一旦超过缓冲, 该goroutine将永远阻塞
 	bufferedOne := make(chan int, 1)
 	bufferedOne <- 1
 	fmt.Printf("bufferedOne cap: %v, len: %v \n", cap(bufferedOne), len(bufferedOne))
@@ -110,7 +112,11 @@ func TestBufferedDemo(t *testing.T) {
 	go func() { responses <- request("192.1.1.1.3") }()
 	fmt.Println(<-responses)
 
-	//注意： 如果使用无缓冲chan, 那么有两个goroutine将被阻塞无法结束, 这种goroutine无法被GC回收, 称为goroutine泄露
+	time.Sleep(2e9)
+	defer func() {
+		fmt.Println("goroutines: ", runtime.NumGoroutine())
+	}()
+	//注意： 比如这里使用无缓冲chan(或者chan数量为1, 注意要是2和3都ok的), 那么有两个goroutine将被阻塞无法结束, 这种goroutine无法被GC回收, 称为goroutine泄露。（阻塞的goroutine就是泄露）
 }
 
 // 想让主协程在子协程完成后退出
@@ -203,7 +209,7 @@ func TestSemaphoreV3(t *testing.T) {
 	// 10个信号量
 	token := make(chan struct{}, 10)
 
-	//监视总共有多少goroutine在执行
+	//监视协程: 监控总共有多少goroutine在执行
 	go func() {
 		total := 0
 		for {
@@ -216,11 +222,11 @@ func TestSemaphoreV3(t *testing.T) {
 	}()
 
 	for i := 0; ; i++ {
-		token <- struct{}{} //acquire TODO acquire是否放goroutine着里面更合适？
+		token <- struct{}{} //acquire TODO acquire是否放goroutine着里面更合适？ 放在里面就不对了, 会开启很多goroutine。
 		go func(i int) {
 			Incr()
 			//total是程序计数, NumGoroutine是go本身的计数, test会有两个goroutine, 还有一个是total监控goroutine, 要去掉
-			fmt.Printf("This goroutine total = %v, %v \n", Total(), runtime.NumGoroutine()-2-1)
+			fmt.Printf("This goroutine total = %v, %v, %v \n", Total(), runtime.NumGoroutine()-2-1, i)
 			process()
 			<-token //release
 			Decr()
@@ -233,14 +239,6 @@ func TestChanFor(t *testing.T) {
 
 	ch := make(chan int, 3)
 
-	//go func() {
-	//	//从channel中读取数据, 直到通道关闭 才往下执行
-	//	for v := range ch {
-	//		fmt.Printf("%v \n", v)
-	//	}
-	//	fmt.Println("exec after closed")//关闭channel后才会执行
-	//}()
-
 	go func() {
 		ch <- 0
 		ch <- 1
@@ -249,6 +247,14 @@ func TestChanFor(t *testing.T) {
 		close(ch)                      //主动关闭
 		fmt.Println("channel closing") //关闭channel
 	}()
+
+	//go func() {
+	//	//从channel中读取数据, 直到通道关闭 才往下执行
+	//	for v := range ch {
+	//		fmt.Printf("%v \n", v)
+	//	}
+	//	fmt.Println("exec after closed") //关闭channel后才会执行
+	//}()
 
 	for v := range ch {
 		fmt.Printf("%v \n", v)
@@ -309,7 +315,7 @@ func TestChannelFactory(t *testing.T) {
 func TestSendRecvOnly(t *testing.T) {
 	//只能向通道发送数据
 	sendOnly := make(chan<- string)
-	//只接收的通道（<-chan T）无法关闭, 准确的说是不必关闭, 关闭表示不能向通道发送数据。
+	//只接收的通道（<-chan T）无法关闭, 会编译失败（准确的说是不必关闭, 关闭表示不能向通道发送数据）。
 	recvOnly := make(<-chan int)
 
 	go func(send chan<- string, recv <-chan int) {
@@ -321,7 +327,7 @@ func TestSendRecvOnly(t *testing.T) {
 }
 
 // goroutine -> chan -> goroutine -> chan...
-// 关闭chan不是必须的, gc会帮你处理, 只是当需要告知其他goroutine无需等待时才有意义
+// 关闭chan不是必须的, gc会帮你处理, 只有当需要告知其他goroutine无需等待时才有意义
 func TestPipeline(t *testing.T) {
 
 	natural := make(chan int)
