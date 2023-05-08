@@ -165,7 +165,7 @@ func TestSetup(t *testing.T) {
 	fmt.Println(a)
 }
 
-// 对应两个producer
+// 用来通知producer关闭
 var over = make(chan struct{})
 
 func producer(factor int, containers chan<- interface{}) {
@@ -232,7 +232,7 @@ func filterPrime(nums <-chan int, prime int, ctx context.Context) <-chan int {
 	return filters
 }
 
-//打印素数
+//打印素数, 将context传入到goroutine的树形结构. 从外层调用context的cancel或者timeout, 广播到所有的goroutine(goroutine需要select)
 func TestPrime(t *testing.T) {
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
