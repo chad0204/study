@@ -390,6 +390,7 @@ func sqrt(in <-chan int) <-chan int {
 	return square
 }
 
+// count goroutine -> natural chan -> sqrt goroutine -> square chan -> main goroutine
 func TestPipelineV2(t *testing.T) {
 	res := sqrt(count())
 	for v := range res {

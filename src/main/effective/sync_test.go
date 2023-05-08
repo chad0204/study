@@ -79,6 +79,7 @@ func ClearSafe() {
 	clearChan <- struct{}{}
 }
 
+// g1、g2 -> deposit chan -> monitor goroutine -> balances chan -> main goroutine
 func TestSafeBank(t *testing.T) {
 
 	//先启动监听
@@ -229,7 +230,7 @@ func getInstanceLock() *Singleton {
 
 var once sync.Once
 
-//提供了一种更快的方式
+// 提供了一种更快的方式
 func getInstanceOnce() *Singleton {
 	once.Do(func() {
 		INSTANCE = &Singleton{name: "2333"}
