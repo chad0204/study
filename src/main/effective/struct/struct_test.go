@@ -57,7 +57,7 @@ node
                                          /         \
                                        \/_	       _\/
 						+————————————————+		+ —————————————+ +——————————————————— + + ————+ +—————— +
-						|	value:		 |	    |   id: 233    | |   value:           | |  vp | | next  |
+						|	value:		 |	    |   id: 234    | |   value:           | |  vp | | next  |
 					    | {data: "fp"}	 |	    |		       | |  {data: "second"}  | |     | |       |
 						+————————————————+		+ —————————————+ +——————————————————— + + ————+ +—————— +
 
@@ -69,7 +69,7 @@ type Node struct {
 	id    int
 	value Value
 	vp    *Value
-	//next Node//递归结构体, 不能嵌套自己。否则无法计算Demo的大小,指针的大小是固定的。（该限制同样适用于数组）
+	//next Node//递归结构体, 不能嵌套自己。否则无法计算node的大小, 而指针的大小是固定的。（该限制同样适用于数组）
 	next *Node
 }
 
@@ -219,7 +219,7 @@ func EmpByIdV2(id int) Employee {
 	return employee
 }
 
-//返回值
+// 返回值
 func TestReturn(t *testing.T) {
 
 	employee := EmpById(1)
