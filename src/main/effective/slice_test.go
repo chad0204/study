@@ -10,7 +10,7 @@ import (
 // 3. 多个slice表示同一数组, 这些slice可以共享存储。数组是切片的构建块。当你有个数组arr需要函数传递，最好创建一个切片arr[:],传递这个切片。
 // go/src/runtime/slice.go
 
-//声明、零值、类型、值传递
+// 声明、零值、类型、值传递
 func TestArray(t *testing.T) {
 
 	//声明, 需要定义长度, 有初始化默认值
@@ -57,10 +57,10 @@ func exchangeRef(arr *[5]int) {
 
 /*------------------------------------------------slice---------------------------------------------------------*/
 
-/**
+/*
+*
 声明
 零值 nil, new返回的是len=cap=0的切片
-
 */
 func TestSlice(t *testing.T) {
 
@@ -82,7 +82,7 @@ func TestSlice(t *testing.T) {
 	//声明 + 初始化
 	slice2 := []int{1, 2, 3}
 
-	//如果原始数组不存在, 可以使用make
+	//如果原始数组不存在, 无法通过数组获取切片, 可以使用make
 	s := make([]int, 10) //cap(s) == len(s) == 10
 	fmt.Printf("s %d, %d, %v \n", len(s), cap(s), s)
 
@@ -97,7 +97,7 @@ func TestSlice(t *testing.T) {
 
 }
 
-//引用传递
+// 引用传递
 func exchangeSlice(arr []int) {
 	fmt.Printf("slice address:%p \n", arr)
 	for i, v := range arr {
@@ -138,8 +138,8 @@ func TestLenAndCap(t *testing.T) {
 
 }
 
-//make(T) 返回一个类型为 T 的初始值，它只适用于3种内建的引用类型：切片、map 和 channel
-//new(T) 为每个新的类型T分配一片内存，初始化为 0 并且返回类型为*T的内存地址：这种方法 返回一个指向类型为 T，值为 0 的地址的指针，它适用于值类型如数组和结构体,它相当于 &T{}
+// make(T) 返回一个类型为 T 的初始值，它只适用于3种内建的引用类型：切片、map 和 channel
+// new(T) 为每个新的类型T分配一片内存，初始化为 0 并且返回类型为*T的内存地址：这种方法 返回一个指向类型为 T，值为 0 的地址的指针，它适用于值类型如数组和结构体,它相当于 &T{}
 func TestMake(t *testing.T) {
 	//当没有前提数组时, 使用make创建切片
 	s := make([]int, 0)
@@ -222,6 +222,21 @@ func TestAppend(t *testing.T) {
 
 }
 
+func TestAppendAddress(t *testing.T) {
+	//结论： 两个s指向同一个数组, 但是是不同的切片
+	s := make([]int, 3, 10) //数组不变
+	//s := []int{1, 2, 3} //由于扩容, 数组也变化了
+	fmt.Printf("指向的数组的地址: %p, 切片的地址: %p\n", s, &s)
+	add(s)
+	fmt.Println(s)
+}
+
+func add(s []int) {
+	//这样更新是不能改变函数外面的值的, 地址发生变化
+	s = append(s, 999)
+	fmt.Printf("指向的数组的地址: %p, 切片的地址: %p\n", s, &s)
+}
+
 func TestAppendChar(t *testing.T) {
 
 	s := "string"
@@ -236,7 +251,7 @@ func TestAppendChar(t *testing.T) {
 
 }
 
-//用copy实现append, append可以理解为java list的add
+// 用copy实现append, append可以理解为java list的add
 func AppendChar(slice []byte, ele ...byte) []byte {
 	oldLen := len(slice)
 	newLen := oldLen + len(ele)
@@ -307,7 +322,7 @@ func remove(slice []int, index int) []int {
 	return slice[:len(slice)-1]
 }
 
-//删除某个元素, 保持原有顺序, 后面的元素依次向前移动一位
+// 删除某个元素, 保持原有顺序, 后面的元素依次向前移动一位
 func TestRemove(t *testing.T) {
 	slice := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
 	slice = remove(slice, 3)
